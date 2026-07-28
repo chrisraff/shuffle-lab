@@ -1,9 +1,11 @@
 import { COLOR_SCHEMES } from "../core/colors";
+import { VIZ_REGISTRY } from "../viz/registry";
 
 export interface ControlsCallbacks {
   onDeckSizeChange(size: number): void;
   onNumDecksChange(numDecks: number): void;
   onColorSchemeChange(colorSchemeId: string): void;
+  onVizChange(vizId: string): void;
   onShuffle(times: number): void;
   onReset(): void;
 }
@@ -12,6 +14,7 @@ export interface ControlsInitial {
   deckSize: number;
   numDecks: number;
   colorSchemeId: string;
+  vizId: string;
 }
 
 /** A handle onto one control's DOM, letting a lesson script hide/disable/highlight it. */
@@ -68,6 +71,14 @@ export class ControlsPanel {
       value: initial.colorSchemeId,
       options: COLOR_SCHEMES.map((s) => ({ value: s.id, label: s.label })),
       onChange: (v) => callbacks.onColorSchemeChange(v),
+    });
+
+    this.registerSelectField(form, {
+      id: "vizSelect",
+      label: "Visualization",
+      value: initial.vizId,
+      options: VIZ_REGISTRY.map((v) => ({ value: v.id, label: v.label })),
+      onChange: (v) => callbacks.onVizChange(v),
     });
 
     const actions = document.createElement("div");

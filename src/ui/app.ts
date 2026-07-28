@@ -1,12 +1,13 @@
 import { getColorScheme } from "../core/colors";
 import { Experiment } from "../core/experiment";
-import { ColumnHistoryViz } from "../viz/columnHistoryViz";
+import { createVisualization } from "../viz/registry";
 import type { Visualization } from "../viz/types";
 import { ControlsPanel } from "./controls";
 
 const DEFAULT_DECK_SIZE = 52;
 const DEFAULT_NUM_DECKS = 1;
 const DEFAULT_COLOR_SCHEME = "rainbow";
+const DEFAULT_VIZ = "column-history";
 
 export function mountApp(root: HTMLElement): void {
   root.innerHTML = `
@@ -32,20 +33,30 @@ export function mountApp(root: HTMLElement): void {
   const experiment = new Experiment({ deckSize: DEFAULT_DECK_SIZE, numDecks: DEFAULT_NUM_DECKS });
   let colorScheme = getColorScheme(DEFAULT_COLOR_SCHEME);
 
-  const activeViz: Visualization = new ColumnHistoryViz();
+  let activeViz: Visualization = createVisualization(DEFAULT_VIZ);
   activeViz.mount(vizPanel, { experiment, colorScheme });
 
   experiment.subscribe(() => activeViz.render({ experiment, colorScheme }));
 
   new ControlsPanel(
     controlsPanel,
-    { deckSize: DEFAULT_DECK_SIZE, numDecks: DEFAULT_NUM_DECKS, colorSchemeId: DEFAULT_COLOR_SCHEME },
+    {
+      deckSize: DEFAULT_DECK_SIZE,
+      numDecks: DEFAULT_NUM_DECKS,
+      colorSchemeId: DEFAULT_COLOR_SCHEME,
+      vizId: DEFAULT_VIZ,
+    },
     {
       onDeckSizeChange: (size) => experiment.reset({ deckSize: size }),
       onNumDecksChange: (numDecks) => experiment.reset({ numDecks }),
       onColorSchemeChange: (id) => {
         colorScheme = getColorScheme(id);
         activeViz.render({ experiment, colorScheme });
+      },
+      onVizChange: (id) => {
+        activeViz.unmount();
+        activeViz = createVisualization(id);
+        activeViz.mount(vizPanel, { experiment, colorScheme });
       },
       onShuffle: (times) => {
         for (let i = 0; i < times; i++) experiment.shuffleOnce();

@@ -241,3 +241,8 @@ body {
   color: var(--text-dim);
   margin-bottom: 0.3rem;
 }
+
+.follow-card-scroll {
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
