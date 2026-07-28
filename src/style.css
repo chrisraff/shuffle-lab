@@ -103,3 +103,141 @@ body {
   border-radius: var(--radius);
   padding: 1rem;
 }
+
+#viz-panel {
+  overflow: auto;
+  min-height: 0;
+}
+
+/* Controls */
+
+.controls-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.control-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  border-radius: 8px;
+  padding: 0.4rem;
+  margin: -0.4rem;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.control-label {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+.control-field input,
+.control-field select {
+  background: var(--bg);
+  border: 1px solid var(--panel-border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.9rem;
+}
+
+.control-field input:focus,
+.control-field select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.control-actions {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.3rem;
+}
+
+.control-button-field {
+  margin: -0.4rem;
+}
+
+.btn {
+  flex: 1;
+  border: 1px solid var(--panel-border);
+  background: var(--bg);
+  color: var(--text);
+  padding: 0.5rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn:hover {
+  filter: brightness(1.2);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btn-danger {
+  color: var(--danger);
+}
+
+.control-field.is-hidden {
+  display: none;
+}
+
+.control-field.is-disabled {
+  opacity: 0.45;
+}
+
+.control-field.is-highlighted {
+  background: var(--accent-dim);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+/* Visualizations */
+
+.viz-header h2 {
+  margin: 0 0 0.2rem;
+  font-size: 1rem;
+}
+
+.viz-desc {
+  margin: 0 0 1rem;
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  max-width: 60ch;
+}
+
+.viz-note {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  margin-bottom: 0.75rem;
+}
+
+.column-history-trials {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.deck-grid-wrap {
+  display: inline-block;
+}
+
+.deck-grid-label {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  margin-bottom: 0.3rem;
+}
