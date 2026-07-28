@@ -1,6 +1,5 @@
 import type { ColorScheme } from "../core/colors";
 import type { Experiment } from "../core/experiment";
-import type { ShuffleStep } from "../core/shuffle";
 
 export interface VizContext {
   experiment: Experiment;
@@ -12,11 +11,11 @@ export interface VizRenderOptions {
    * True when this render was triggered by a single fresh shuffle (as
    * opposed to a reset, color change, or viz switch). Visualizations that
    * support animated playback (see `columnHistoryViz`'s single-deck mode)
-   * use this to decide whether to animate or just redraw statically.
+   * use this to decide whether to animate the most recent transition —
+   * found at the end of each trial's `steps` array — instead of just
+   * redrawing statically.
    */
   animate?: boolean;
-  /** The step(s) that were just appended, one per trial, when animate is true. */
-  newSteps?: ShuffleStep[];
 }
 
 /**

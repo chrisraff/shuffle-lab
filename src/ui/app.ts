@@ -9,6 +9,16 @@ const DEFAULT_NUM_DECKS = 1;
 const DEFAULT_COLOR_SCHEME = "rainbow";
 const DEFAULT_VIZ = "column-history";
 
+const ALL_CONTROL_IDS = [
+  "deckSize",
+  "numDecks",
+  "colorScheme",
+  "vizSelect",
+  "shuffleOnce",
+  "shuffleFive",
+  "reset",
+];
+
 export function mountApp(root: HTMLElement): void {
   root.innerHTML = `
     <header class="app-header">
@@ -36,9 +46,7 @@ export function mountApp(root: HTMLElement): void {
   let activeViz: Visualization = createVisualization(DEFAULT_VIZ);
   activeViz.mount(vizPanel, { experiment, colorScheme });
 
-  experiment.subscribe(() => activeViz.render({ experiment, colorScheme }));
-
-  new ControlsPanel(
+  const controls = new ControlsPanel(
     controlsPanel,
     {
       deckSize: DEFAULT_DECK_SIZE,
@@ -47,8 +55,14 @@ export function mountApp(root: HTMLElement): void {
       vizId: DEFAULT_VIZ,
     },
     {
-      onDeckSizeChange: (size) => experiment.reset({ deckSize: size }),
-      onNumDecksChange: (numDecks) => experiment.reset({ numDecks }),
+      onDeckSizeChange: (size) => {
+        experiment.reset({ deckSize: size });
+        activeViz.render({ experiment, colorScheme });
+      },
+      onNumDecksChange: (numDecks) => {
+        experiment.reset({ numDecks });
+        activeViz.render({ experiment, colorScheme });
+      },
       onColorSchemeChange: (id) => {
         colorScheme = getColorScheme(id);
         activeViz.render({ experiment, colorScheme });
@@ -59,9 +73,31 @@ export function mountApp(root: HTMLElement): void {
         activeViz.mount(vizPanel, { experiment, colorScheme });
       },
       onShuffle: (times) => {
-        for (let i = 0; i < times; i++) experiment.shuffleOnce();
+        void handleShuffle(times);
       },
-      onReset: () => experiment.reset(),
+      onReset: () => {
+        experiment.reset();
+        activeViz.render({ experiment, colorScheme });
+      },
     },
   );
+
+  function setControlsEnabled(enabled: boolean): void {
+    for (const id of ALL_CONTROL_IDS) controls.get(id).setEnabled(enabled);
+  }
+
+  async function handleShuffle(times: number): Promise<void> {
+    // Only animate a single shuffle triggered on a single deck — bulk
+    // shuffles and multi-deck runs redraw statically for speed.
+    const animate = times === 1 && experiment.numDecks === 1;
+    setControlsEnabled(false);
+    try {
+      for (let i = 0; i < times; i++) {
+        experiment.shuffleOnce();
+        await activeViz.render({ experiment, colorScheme }, { animate });
+      }
+    } finally {
+      setControlsEnabled(true);
+    }
+  }
 }

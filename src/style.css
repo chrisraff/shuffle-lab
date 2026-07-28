@@ -242,6 +242,26 @@ body {
   margin-bottom: 0.3rem;
 }
 
+.deck-grid-stage {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+
+.anim-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.anim-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 1px;
+  will-change: transform;
+}
+
 .follow-card-scroll {
   overflow-x: auto;
   padding-bottom: 0.5rem;
