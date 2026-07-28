@@ -24,6 +24,8 @@ export interface ControlHandle {
   setVisible(visible: boolean): void;
   setEnabled(enabled: boolean): void;
   setHighlighted(highlighted: boolean): void;
+  /** Reflects a programmatic value change (e.g. from a lesson step) in the input/select. No-op for buttons. */
+  setValue(value: string | number): void;
 }
 
 const MIN_DECK_SIZE = 2;
@@ -110,7 +112,11 @@ export class ControlsPanel {
     return handle;
   }
 
-  private registerHandle(id: string, fieldEl: HTMLElement): ControlHandle {
+  private registerHandle(
+    id: string,
+    fieldEl: HTMLElement,
+    setValue: (value: string | number) => void = () => {},
+  ): ControlHandle {
     const handle: ControlHandle = {
       id,
       fieldEl,
@@ -124,6 +130,7 @@ export class ControlsPanel {
           .forEach((el) => (el.disabled = !enabled));
       },
       setHighlighted: (highlighted) => fieldEl.classList.toggle("is-highlighted", highlighted),
+      setValue,
     };
     this.controls.set(id, handle);
     return handle;
@@ -163,7 +170,9 @@ export class ControlsPanel {
 
     field.append(labelEl, input);
     form.appendChild(field);
-    this.registerHandle(opts.id, field);
+    this.registerHandle(opts.id, field, (value) => {
+      input.value = String(value);
+    });
   }
 
   private registerSelectField(
@@ -196,7 +205,9 @@ export class ControlsPanel {
 
     field.append(labelEl, select);
     form.appendChild(field);
-    this.registerHandle(opts.id, field);
+    this.registerHandle(opts.id, field, (value) => {
+      select.value = String(value);
+    });
   }
 
   private registerButton(
