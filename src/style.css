@@ -88,6 +88,16 @@ body {
   min-height: 0;
 }
 
+@media (max-width: 760px) {
+  .app-header {
+    flex-wrap: wrap;
+  }
+
+  .app-body {
+    grid-template-columns: 1fr;
+  }
+}
+
 .placeholder {
   color: var(--text-dim);
   font-size: 0.9rem;
