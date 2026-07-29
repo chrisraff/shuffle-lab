@@ -1,4 +1,5 @@
-import { CELL_WIDTH, HEADER_HEIGHT, createGridCanvas } from "./grid";
+import type { OperationKind } from "../core/operations";
+import { CELL_WIDTH, HEADER_HEIGHT, buildStepIconRow, createGridCanvas } from "./grid";
 import type { VizContext, VizRenderOptions, Visualization } from "./types";
 
 const MIN_TRIALS_FOR_SMOOTH_GRADIENT = 20;
@@ -11,9 +12,6 @@ const BACKGROUND_COLOR = "#0f1115";
  * probabilities stay legible without changing which cells are brighter.
  */
 const VISIBILITY_GAMMA = 0.45;
-
-/** The card whose position we track — the one that started on top of the deck. */
-const TRACKED_CARD = 0;
 
 /**
  * Same grid as Column History (row = position, column = shuffle count), but
@@ -29,10 +27,10 @@ const TRACKED_CARD = 0;
 export class FollowCardViz implements Visualization {
   id = "follow-card";
   label = "Follow One Card";
-  description =
-    "Tracks the card that started on top of the deck across every trial. Each cell is that card's color averaged across all trials — solid where the card reliably ends up, fading towards black where it rarely does.";
+  description = "Tracks one card across every trial and averages its color — solid where it reliably ends up, fading towards black where it rarely does.";
 
   private container: HTMLElement | null = null;
+  private descEl: HTMLElement | null = null;
   private noteEl: HTMLElement | null = null;
   private scrollEl: HTMLElement | null = null;
 
@@ -41,22 +39,29 @@ export class FollowCardViz implements Visualization {
     container.innerHTML = `
       <div class="viz-header">
         <h2>${this.label}</h2>
-        <p class="viz-desc">${this.description}</p>
+        <p class="viz-desc"></p>
       </div>
       <div class="viz-note"></div>
       <div class="follow-card-scroll"></div>
     `;
+    this.descEl = container.querySelector<HTMLElement>(".viz-desc");
     this.noteEl = container.querySelector<HTMLElement>(".viz-note");
     this.scrollEl = container.querySelector<HTMLElement>(".follow-card-scroll");
     this.render(ctx);
   }
 
   render(ctx: VizContext, _options?: VizRenderOptions): void {
-    if (!this.scrollEl || !this.noteEl) return;
+    if (!this.scrollEl || !this.noteEl || !this.descEl) return;
     const { experiment, colorScheme } = ctx;
     const deckSize = experiment.deckSize;
+    const trackedCard = Math.min(Math.max(0, ctx.trackedCard), deckSize - 1);
     const columns = experiment.shuffleCount + 1;
     const numTrials = experiment.trials.length;
+
+    this.descEl.textContent =
+      trackedCard === 0
+        ? "Tracks the card that started on top of the deck across every trial and averages its color — solid where it reliably ends up, fading towards black where it rarely does."
+        : `Tracks the card that started at position ${trackedCard} across every trial and averages its color — solid where it reliably ends up, fading towards black where it rarely does.`;
 
     this.noteEl.textContent =
       numTrials < MIN_TRIALS_FOR_SMOOTH_GRADIENT
@@ -66,14 +71,16 @@ export class FollowCardViz implements Visualization {
     const counts: number[][] = Array.from({ length: columns }, () => new Array(deckSize).fill(0));
     for (const trial of experiment.trials) {
       for (let k = 0; k < columns; k++) {
-        const pos = trial.history[k].indexOf(TRACKED_CARD);
+        const pos = trial.history[k].indexOf(trackedCard);
         counts[k][pos]++;
       }
     }
 
     this.scrollEl.innerHTML = "";
+    const stage = document.createElement("div");
+    stage.className = "deck-grid-stage";
     const { canvas, gfx, cellHeight } = createGridCanvas(columns, deckSize);
-    const trackedColor = colorScheme.colorFor(TRACKED_CARD, deckSize);
+    const trackedColor = colorScheme.colorFor(trackedCard, deckSize);
     const cellGap = cellHeight > 3 ? 1 : 0;
 
     for (let c = 0; c < columns; c++) {
@@ -95,12 +102,18 @@ export class FollowCardViz implements Visualization {
       }
     }
 
-    this.scrollEl.appendChild(canvas);
+    stage.appendChild(canvas);
+    const firstTrial = experiment.trials[0];
+    const getKind = (col: number): OperationKind | null =>
+      col === 0 || !firstTrial ? null : (firstTrial.steps[col - 1]?.kind ?? null);
+    stage.appendChild(buildStepIconRow(columns, getKind));
+    this.scrollEl.appendChild(stage);
   }
 
   unmount(): void {
     if (this.container) this.container.innerHTML = "";
     this.container = null;
+    this.descEl = null;
     this.noteEl = null;
     this.scrollEl = null;
   }

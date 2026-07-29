@@ -4,6 +4,8 @@ import type { Experiment } from "../core/experiment";
 export interface VizContext {
   experiment: Experiment;
   colorScheme: ColorScheme;
+  /** Which card (by original index) "Follow One Card" tracks. Ignored by visualizations that don't use it. */
+  trackedCard: number;
 }
 
 export interface VizRenderOptions {

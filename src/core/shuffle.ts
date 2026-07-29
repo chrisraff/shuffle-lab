@@ -4,6 +4,7 @@ import { sampleBinomial, type Rng } from "./rng";
 export type PileSource = "top" | "bottom";
 
 export interface ShuffleStep {
+  kind: "riffle";
   /** Deck order (array of original card indices) after this shuffle. */
   result: number[];
   /** How big the top pile was after the cut. */
@@ -71,5 +72,5 @@ export function riffleShuffle(
     }
   }
 
-  return { result, cutIndex, sourceSequence };
+  return { kind: "riffle", result, cutIndex, sourceSequence };
 }

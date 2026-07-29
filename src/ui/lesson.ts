@@ -28,10 +28,16 @@ const ALL_CONTROL_IDS = [
   "numDecks",
   "colorScheme",
   "vizSelect",
+  "trackedCard",
   "shuffleOnce",
   "shuffleFive",
+  "cut",
+  "overhand",
   "reset",
 ];
+
+/** Controls this simple lesson doesn't need — kept hidden throughout so the UI stays focused on the riffle shuffle story. */
+const ADVANCED_CONTROL_IDS = ["numDecks", "vizSelect", "trackedCard", "cut", "overhand"];
 
 const FULLY_RANDOM_SHUFFLE_COUNT = 7;
 
@@ -42,6 +48,10 @@ function resetControlChrome(controls: ControlsPanel): void {
     handle.setEnabled(true);
     handle.setHighlighted(false);
   }
+}
+
+function hideAdvancedControls(controls: ControlsPanel): void {
+  for (const id of ADVANCED_CONTROL_IDS) controls.get(id).setVisible(false);
 }
 
 const STEPS: LessonStep[] = [
@@ -55,8 +65,7 @@ const STEPS: LessonStep[] = [
       host.setDeckSize(52);
       host.reset();
       resetControlChrome(host.controls);
-      host.controls.get("numDecks").setVisible(false);
-      host.controls.get("vizSelect").setVisible(false);
+      hideAdvancedControls(host.controls);
     },
   },
   {
@@ -64,8 +73,7 @@ const STEPS: LessonStep[] = [
     body: "Column 0 is the deck before any shuffling — a clean gradient, because every card is still exactly where it started. A standard deck has 52 cards, so that's our deck size for this lesson.",
     onEnter: (host) => {
       resetControlChrome(host.controls);
-      host.controls.get("numDecks").setVisible(false);
-      host.controls.get("vizSelect").setVisible(false);
+      hideAdvancedControls(host.controls);
       host.controls.get("deckSize").setHighlighted(true);
       host.controls.get("deckSize").setEnabled(false);
     },
@@ -75,8 +83,7 @@ const STEPS: LessonStep[] = [
     body: 'Click the highlighted "Shuffle" button a few times. Watch the gradient break apart: each shuffle interleaves two halves of the deck, scattering colors a little further from where they started.',
     onEnter: (host) => {
       resetControlChrome(host.controls);
-      host.controls.get("numDecks").setVisible(false);
-      host.controls.get("vizSelect").setVisible(false);
+      hideAdvancedControls(host.controls);
       host.controls.get("deckSize").setEnabled(false);
       host.controls.get("shuffleOnce").setHighlighted(true);
       host.controls.get("shuffleFive").setVisible(false);
@@ -88,8 +95,7 @@ const STEPS: LessonStep[] = [
     body: "Mathematician Persi Diaconis showed that a 52-card deck needs about 7 riffle shuffles before it's close to truly random. Fewer than that, and the deck still carries detectable structure — long unbroken runs from the original order — that a sharp observer could exploit. We'll fast-forward to 7 shuffles now.",
     onEnter: async (host) => {
       resetControlChrome(host.controls);
-      host.controls.get("numDecks").setVisible(false);
-      host.controls.get("vizSelect").setVisible(false);
+      hideAdvancedControls(host.controls);
       for (const id of ALL_CONTROL_IDS) host.controls.get(id).setEnabled(false);
       const remaining = FULLY_RANDOM_SHUFFLE_COUNT - host.getShuffleCount();
       if (remaining > 0) await host.shuffle(remaining);

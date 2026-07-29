@@ -1,7 +1,8 @@
 import { getColorScheme } from "../core/colors";
 import { Experiment } from "../core/experiment";
+import type { OperationKind } from "../core/operations";
 import { createVisualization } from "../viz/registry";
-import type { Visualization } from "../viz/types";
+import type { VizContext, Visualization } from "../viz/types";
 import { ControlsPanel } from "./controls";
 import { LessonController, type LessonHost } from "./lesson";
 
@@ -9,14 +10,18 @@ const DEFAULT_DECK_SIZE = 52;
 const DEFAULT_NUM_DECKS = 1;
 const DEFAULT_COLOR_SCHEME = "rainbow";
 const DEFAULT_VIZ = "column-history";
+const DEFAULT_TRACKED_CARD = 0;
 
 const ALL_CONTROL_IDS = [
   "deckSize",
   "numDecks",
   "colorScheme",
   "vizSelect",
+  "trackedCard",
   "shuffleOnce",
   "shuffleFive",
+  "cut",
+  "overhand",
   "reset",
 ];
 
@@ -48,53 +53,65 @@ export function mountApp(root: HTMLElement): void {
 
   const experiment = new Experiment({ deckSize: DEFAULT_DECK_SIZE, numDecks: DEFAULT_NUM_DECKS });
   let colorScheme = getColorScheme(DEFAULT_COLOR_SCHEME);
+  let trackedCard = DEFAULT_TRACKED_CARD;
+
+  function ctx(): VizContext {
+    return { experiment, colorScheme, trackedCard };
+  }
 
   let activeViz: Visualization = createVisualization(DEFAULT_VIZ);
-  activeViz.mount(vizPanel, { experiment, colorScheme });
+  activeViz.mount(vizPanel, ctx());
 
   function setDeckSize(size: number): void {
     experiment.reset({ deckSize: size });
     controls.get("deckSize").setValue(size);
-    activeViz.render({ experiment, colorScheme });
+    activeViz.render(ctx());
   }
 
   function setNumDecks(numDecks: number): void {
     experiment.reset({ numDecks });
     controls.get("numDecks").setValue(numDecks);
-    activeViz.render({ experiment, colorScheme });
+    activeViz.render(ctx());
   }
 
   function setColorScheme(id: string): void {
     colorScheme = getColorScheme(id);
     controls.get("colorScheme").setValue(id);
-    activeViz.render({ experiment, colorScheme });
+    activeViz.render(ctx());
   }
 
   function setViz(id: string): void {
     activeViz.unmount();
     activeViz = createVisualization(id);
-    activeViz.mount(vizPanel, { experiment, colorScheme });
+    activeViz.mount(vizPanel, ctx());
     controls.get("vizSelect").setValue(id);
+    controls.get("trackedCard").setVisible(id === "follow-card");
+  }
+
+  function setTrackedCard(card: number): void {
+    trackedCard = card;
+    controls.get("trackedCard").setValue(card);
+    activeViz.render(ctx());
   }
 
   function doReset(): void {
     experiment.reset();
-    activeViz.render({ experiment, colorScheme });
+    activeViz.render(ctx());
   }
 
   function setControlsEnabled(enabled: boolean): void {
     for (const id of ALL_CONTROL_IDS) controls.get(id).setEnabled(enabled);
   }
 
-  async function handleShuffle(times: number): Promise<void> {
-    // Only animate a single shuffle triggered on a single deck — bulk
-    // shuffles and multi-deck runs redraw statically for speed.
-    const animate = times === 1 && experiment.numDecks === 1;
+  async function performOperation(kind: OperationKind, times: number = 1): Promise<void> {
+    // Only animate a single riffle shuffle on a single deck — cuts,
+    // overhand shuffles, bulk runs, and multi-deck runs redraw statically.
+    const animate = kind === "riffle" && times === 1 && experiment.numDecks === 1;
     setControlsEnabled(false);
     try {
       for (let i = 0; i < times; i++) {
-        experiment.shuffleOnce();
-        await activeViz.render({ experiment, colorScheme }, { animate });
+        experiment.perform(kind);
+        await activeViz.render(ctx(), { animate });
       }
     } finally {
       setControlsEnabled(true);
@@ -108,14 +125,22 @@ export function mountApp(root: HTMLElement): void {
       numDecks: DEFAULT_NUM_DECKS,
       colorSchemeId: DEFAULT_COLOR_SCHEME,
       vizId: DEFAULT_VIZ,
+      trackedCard: DEFAULT_TRACKED_CARD,
     },
     {
       onDeckSizeChange: setDeckSize,
       onNumDecksChange: setNumDecks,
       onColorSchemeChange: setColorScheme,
       onVizChange: setViz,
+      onTrackedCardChange: setTrackedCard,
       onShuffle: (times) => {
-        void handleShuffle(times);
+        void performOperation("riffle", times);
+      },
+      onCut: () => {
+        void performOperation("cut");
+      },
+      onOverhand: () => {
+        void performOperation("overhand");
       },
       onReset: doReset,
     },
@@ -127,7 +152,7 @@ export function mountApp(root: HTMLElement): void {
     setNumDecks,
     setColorScheme,
     setViz,
-    shuffle: handleShuffle,
+    shuffle: (times) => performOperation("riffle", times),
     reset: doReset,
     getShuffleCount: () => experiment.shuffleCount,
   };

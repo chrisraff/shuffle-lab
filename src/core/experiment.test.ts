@@ -11,21 +11,21 @@ describe("Experiment", () => {
     }
   });
 
-  it("retains full history across shuffles for every trial", () => {
+  it("retains full history across operations for every trial", () => {
     const exp = new Experiment({ deckSize: 12, numDecks: 4 });
-    exp.shuffleOnce();
-    exp.shuffleOnce();
-    exp.shuffleOnce();
+    exp.perform("riffle");
+    exp.perform("cut");
+    exp.perform("overhand");
     expect(exp.shuffleCount).toBe(3);
     for (const trial of exp.trials) {
-      expect(trial.history).toHaveLength(4); // 0-shuffle state + 3 shuffles
-      expect(trial.steps).toHaveLength(3);
+      expect(trial.history).toHaveLength(4); // 0-shuffle state + 3 operations
+      expect(trial.steps.map((s) => s.kind)).toEqual(["riffle", "cut", "overhand"]);
     }
   });
 
   it("resets to a fresh identity deck and clears history", () => {
     const exp = new Experiment({ deckSize: 8, numDecks: 1 });
-    exp.shuffleOnce();
+    exp.perform("riffle");
     exp.reset({ deckSize: 5, numDecks: 2 });
     expect(exp.deckSize).toBe(5);
     expect(exp.numDecks).toBe(2);
@@ -33,11 +33,11 @@ describe("Experiment", () => {
     expect(exp.trials[0].history).toEqual([[0, 1, 2, 3, 4]]);
   });
 
-  it("notifies subscribers on shuffle and reset", () => {
+  it("notifies subscribers on operations and reset", () => {
     const exp = new Experiment({ deckSize: 6, numDecks: 1 });
     let notifications = 0;
     exp.subscribe(() => notifications++);
-    exp.shuffleOnce();
+    exp.perform("riffle");
     exp.reset();
     expect(notifications).toBe(2);
   });

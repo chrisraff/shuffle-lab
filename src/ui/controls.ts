@@ -6,7 +6,10 @@ export interface ControlsCallbacks {
   onNumDecksChange(numDecks: number): void;
   onColorSchemeChange(colorSchemeId: string): void;
   onVizChange(vizId: string): void;
+  onTrackedCardChange(card: number): void;
   onShuffle(times: number): void;
+  onCut(): void;
+  onOverhand(): void;
   onReset(): void;
 }
 
@@ -15,6 +18,7 @@ export interface ControlsInitial {
   numDecks: number;
   colorSchemeId: string;
   vizId: string;
+  trackedCard: number;
 }
 
 /** A handle onto one control's DOM, letting a lesson script hide/disable/highlight it. */
@@ -31,13 +35,14 @@ export interface ControlHandle {
 const MIN_DECK_SIZE = 2;
 const MAX_DECK_SIZE = 300;
 const MIN_NUM_DECKS = 1;
-const MAX_NUM_DECKS = 500;
+const MAX_NUM_DECKS = 2000;
 
 /**
  * Builds the sandbox control panel and exposes each control by id
- * (`deckSize`, `numDecks`, `colorScheme`, `shuffleOnce`, `shuffleFive`,
- * `reset`) so a guided lesson can later hide, disable, or highlight
- * individual controls programmatically without touching this file.
+ * (`deckSize`, `numDecks`, `colorScheme`, `vizSelect`, `trackedCard`,
+ * `shuffleOnce`, `shuffleFive`, `cut`, `overhand`, `reset`) so a guided
+ * lesson can later hide, disable, or highlight individual controls
+ * programmatically without touching this file.
  */
 export class ControlsPanel {
   private controls = new Map<string, ControlHandle>();
@@ -83,6 +88,16 @@ export class ControlsPanel {
       onChange: (v) => callbacks.onVizChange(v),
     });
 
+    this.registerNumberField(form, {
+      id: "trackedCard",
+      label: "Track card # (0 = top)",
+      min: 0,
+      max: MAX_DECK_SIZE - 1,
+      value: initial.trackedCard,
+      onCommit: (v) => callbacks.onTrackedCardChange(v),
+    });
+    this.get("trackedCard").setVisible(initial.vizId === "follow-card");
+
     const actions = document.createElement("div");
     actions.className = "control-field control-actions";
     form.appendChild(actions);
@@ -97,6 +112,16 @@ export class ControlsPanel {
       id: "shuffleFive",
       label: "Shuffle ×5",
       onClick: () => callbacks.onShuffle(5),
+    });
+    this.registerButton(actions, {
+      id: "cut",
+      label: "Cut",
+      onClick: () => callbacks.onCut(),
+    });
+    this.registerButton(actions, {
+      id: "overhand",
+      label: "Overhand",
+      onClick: () => callbacks.onOverhand(),
     });
     this.registerButton(actions, {
       id: "reset",

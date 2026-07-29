@@ -1,9 +1,9 @@
 import type { Trial } from "../core/experiment";
 import type { ColorScheme } from "../core/colors";
-import { CELL_WIDTH, HEADER_HEIGHT, computeCellHeight, createGridCanvas, fillCell } from "./grid";
+import type { OperationKind } from "../core/operations";
+import { buildColorTable } from "./colorMix";
+import { CELL_WIDTH, HEADER_HEIGHT, buildStepIconRow, computeCellHeight, createGridCanvas, fillCell } from "./grid";
 import type { VizContext, VizRenderOptions, Visualization } from "./types";
-
-const MAX_VISIBLE_TRIALS = 12;
 
 const SPLIT_DURATION_MS = 450;
 const DROP_DURATION_MS = 180;
@@ -19,22 +19,30 @@ function nextFrame(): Promise<void> {
 }
 
 /**
- * The primary sandbox visualization: each trial (deck) is drawn as a grid
- * where column 0 is the unshuffled deck, column k is the deck after k
- * shuffles, and each cell's color is the card's ORIGINAL position. Watching
- * the color pattern break up left-to-right is watching the deck randomize.
+ * The primary sandbox visualization: a grid where column 0 is the
+ * unshuffled deck, column k is the deck after k operations, and each
+ * cell's color is a card's ORIGINAL position. Watching the color pattern
+ * break up left-to-right is watching the deck randomize. A small icon
+ * above each column shows which operation (riffle, cut, overhand)
+ * produced it.
  *
- * When there's exactly one trial (one deck), a fresh shuffle animates: a
- * copy of the most recent column slides over to the new column slot,
- * splits into its two riffle piles (top pile up, bottom pile down), then
- * the cards drop one at a time into the new column following the exact
- * pile each card was drawn from during simulation.
+ * With exactly one trial (one deck), the grid shows that deck's real
+ * arrangement, and a fresh riffle shuffle animates: a copy of the most
+ * recent column slides two columns over and splits into its two riffle
+ * piles (top pile up, bottom pile down) — giving room to watch them
+ * clearly — then the cards drop one at a time back into the new column
+ * (one column over) following the exact pile each was drawn from.
+ *
+ * With more than one trial, showing every deck individually doesn't
+ * scale, so the grid instead shows every trial's colors AVERAGED
+ * together: a cell where the same card reliably lands is solid, one
+ * where trials disagree blends towards the other cards' colors.
  */
 export class ColumnHistoryViz implements Visualization {
   id = "column-history";
   label = "Column History";
   description =
-    "Each column is the deck after N shuffles. Row = position in the deck, color = the card's original position.";
+    "Each column is the deck after N operations. Row = position in the deck, color = the card's original position. With multiple decks, colors are averaged across all of them.";
 
   private container: HTMLElement | null = null;
   private trialsEl: HTMLElement | null = null;
@@ -46,6 +54,7 @@ export class ColumnHistoryViz implements Visualization {
         <h2>${this.label}</h2>
         <p class="viz-desc">${this.description}</p>
       </div>
+      <div class="viz-note"></div>
       <div class="column-history-trials"></div>
     `;
     this.trialsEl = container.querySelector<HTMLElement>(".column-history-trials");
@@ -64,38 +73,48 @@ export class ColumnHistoryViz implements Visualization {
   }
 
   private renderStatic(ctx: VizContext): void {
-    if (!this.trialsEl) return;
+    if (!this.container || !this.trialsEl) return;
     const { experiment, colorScheme } = ctx;
+    const noteEl = this.container.querySelector<HTMLElement>(".viz-note");
 
     this.trialsEl.innerHTML = "";
 
-    if (experiment.trials.length > MAX_VISIBLE_TRIALS) {
-      const note = document.createElement("div");
-      note.className = "viz-note";
-      note.textContent = `Showing ${MAX_VISIBLE_TRIALS} of ${experiment.trials.length} decks. Try the "Follow One Card" visualization to see all trials aggregated at once.`;
-      this.trialsEl.appendChild(note);
+    if (experiment.trials.length === 1) {
+      if (noteEl) noteEl.textContent = "";
+      const { wrap } = buildTrialGrid(experiment.trials[0], experiment.deckSize, colorScheme);
+      this.trialsEl.appendChild(wrap);
+      return;
     }
 
-    const showLabels = experiment.trials.length > 1;
-    experiment.trials.slice(0, MAX_VISIBLE_TRIALS).forEach((trial, trialIndex) => {
-      const { wrap } = buildTrialGrid(trial, trialIndex, experiment.deckSize, colorScheme, showLabels);
-      this.trialsEl!.appendChild(wrap);
-    });
+    if (noteEl) noteEl.textContent = `Colors averaged across ${experiment.trials.length} decks.`;
+    this.trialsEl.appendChild(buildAveragedGrid(experiment.trials, experiment.deckSize, colorScheme));
   }
 
   private async animateLatestShuffle(ctx: VizContext): Promise<void> {
     if (!this.trialsEl) return;
     const { experiment, colorScheme } = ctx;
     const trial = experiment.trials[0];
+    const latestStep = trial.steps[trial.steps.length - 1];
+    if (latestStep.kind !== "riffle") {
+      this.renderStatic(ctx);
+      return;
+    }
+
     const deckSize = experiment.deckSize;
-    const step = trial.steps[trial.steps.length - 1];
     const prevOrder = trial.history[trial.history.length - 2];
     const oldColumnIndex = trial.history.length - 2;
     const newColumnIndex = trial.history.length - 1;
+    const overshootColumnIndex = newColumnIndex + 1;
     const cellHeight = computeCellHeight(deckSize);
 
     this.trialsEl.innerHTML = "";
-    const { wrap, stage } = buildTrialGrid(trial, 0, deckSize, colorScheme, false, oldColumnIndex + 1);
+    const { wrap, stage } = buildTrialGrid(
+      trial,
+      deckSize,
+      colorScheme,
+      oldColumnIndex + 1, // visibleColumns: only draw completed columns
+      overshootColumnIndex + 1, // widthColumns: reserve room for the overshoot column
+    );
     this.trialsEl.appendChild(wrap);
 
     const overlay = document.createElement("div");
@@ -116,26 +135,27 @@ export class ColumnHistoryViz implements Visualization {
 
     await nextFrame();
 
-    // Phase 1: slide the copy over to the new column and split it into its
-    // two riffle piles — top pile shifts up, bottom pile shifts down.
+    // Phase 1: slide the copy TWO columns over (to the overshoot column)
+    // and split it into its two riffle piles — top pile up, bottom pile
+    // down — leaving room to clearly watch them interleave on the way in.
     const gap = Math.max(6, cellHeight * 1.5);
     cards.forEach((el, row) => {
-      const isTopPile = row < step.cutIndex;
+      const isTopPile = row < latestStep.cutIndex;
       const splitOffset = isTopPile ? -gap : gap;
       el.style.transition = `transform ${SPLIT_DURATION_MS}ms ease`;
-      setCardPosition(el, newColumnIndex * CELL_WIDTH, HEADER_HEIGHT + row * cellHeight + splitOffset);
+      setCardPosition(el, overshootColumnIndex * CELL_WIDTH, HEADER_HEIGHT + row * cellHeight + splitOffset);
     });
     await wait(SPLIT_DURATION_MS + 30);
 
-    // Phase 2: drop cards one at a time into the new column, in the exact
-    // order the shuffle simulation drew them from each pile.
+    // Phase 2: drop cards one at a time back into the new column — one
+    // column short of the overshoot — in the exact order simulated.
     let topDrawn = 0;
     let bottomDrawn = 0;
     const dropStagger = Math.min(MAX_DROP_STAGGER_MS, Math.max(3, TARGET_DROP_PHASE_MS / deckSize));
     const targetX = newColumnIndex * CELL_WIDTH;
 
-    const drops = step.sourceSequence.map((source, slot) => {
-      const cardEl = source === "top" ? cards[topDrawn++] : cards[step.cutIndex + bottomDrawn++];
+    const drops = latestStep.sourceSequence.map((source, slot) => {
+      const cardEl = source === "top" ? cards[topDrawn++] : cards[latestStep.cutIndex + bottomDrawn++];
       const targetY = HEADER_HEIGHT + slot * cellHeight;
       return wait(slot * dropStagger).then(() => {
         cardEl.style.transition = `transform ${DROP_DURATION_MS}ms ease`;
@@ -161,29 +181,25 @@ function setCardPosition(el: HTMLElement, x: number, y: number): void {
   el.style.transform = `translate(${x}px, ${y}px)`;
 }
 
+function stepKindAt(trial: Trial, column: number): OperationKind | null {
+  if (column === 0) return null;
+  return trial.steps[column - 1]?.kind ?? null;
+}
+
 function buildTrialGrid(
   trial: Trial,
-  trialIndex: number,
   deckSize: number,
   colorScheme: ColorScheme,
-  showLabel: boolean,
   visibleColumns: number = trial.history.length,
+  widthColumns: number = trial.history.length,
 ): { wrap: HTMLElement; stage: HTMLElement; canvas: HTMLCanvasElement } {
   const wrap = document.createElement("div");
   wrap.className = "deck-grid-wrap";
 
-  if (showLabel) {
-    const label = document.createElement("div");
-    label.className = "deck-grid-label";
-    label.textContent = `Deck ${trialIndex + 1}`;
-    wrap.appendChild(label);
-  }
-
   const stage = document.createElement("div");
   stage.className = "deck-grid-stage";
 
-  const totalColumns = trial.history.length;
-  const { canvas, gfx, cellHeight } = createGridCanvas(totalColumns, deckSize);
+  const { canvas, gfx, cellHeight } = createGridCanvas(widthColumns, deckSize, trial.history.length);
 
   for (let c = 0; c < visibleColumns; c++) {
     const order = trial.history[c];
@@ -193,6 +209,45 @@ function buildTrialGrid(
   }
 
   stage.appendChild(canvas);
+  stage.appendChild(buildStepIconRow(visibleColumns, (col) => stepKindAt(trial, col)));
   wrap.appendChild(stage);
   return { wrap, stage, canvas };
+}
+
+function buildAveragedGrid(trials: Trial[], deckSize: number, colorScheme: ColorScheme): HTMLElement {
+  const wrap = document.createElement("div");
+  wrap.className = "deck-grid-wrap";
+
+  const stage = document.createElement("div");
+  stage.className = "deck-grid-stage";
+
+  const columns = trials[0]?.history.length ?? 1;
+  const numTrials = trials.length;
+  const { canvas, gfx, cellHeight } = createGridCanvas(columns, deckSize);
+  const colorTable = buildColorTable(colorScheme, deckSize);
+  const sums = new Float64Array(deckSize * 3);
+
+  for (let c = 0; c < columns; c++) {
+    sums.fill(0);
+    for (const trial of trials) {
+      const order = trial.history[c];
+      for (let r = 0; r < deckSize; r++) {
+        const card = order[r];
+        sums[r * 3] += colorTable[card * 3];
+        sums[r * 3 + 1] += colorTable[card * 3 + 1];
+        sums[r * 3 + 2] += colorTable[card * 3 + 2];
+      }
+    }
+    for (let r = 0; r < deckSize; r++) {
+      const rr = Math.round(sums[r * 3] / numTrials);
+      const gg = Math.round(sums[r * 3 + 1] / numTrials);
+      const bb = Math.round(sums[r * 3 + 2] / numTrials);
+      fillCell(gfx, c, r, cellHeight, `rgb(${rr}, ${gg}, ${bb})`);
+    }
+  }
+
+  stage.appendChild(canvas);
+  stage.appendChild(buildStepIconRow(columns, (col) => stepKindAt(trials[0], col)));
+  wrap.appendChild(stage);
+  return wrap;
 }

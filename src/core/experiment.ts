@@ -1,14 +1,15 @@
 import { createIdentityDeck } from "./deck";
+import { cutDeck, overhandShuffle, type OperationKind, type Step } from "./operations";
 import { createRng, type Rng } from "./rng";
-import { DEFAULT_BIAS_K, riffleShuffle, type ShuffleStep } from "./shuffle";
+import { DEFAULT_BIAS_K, riffleShuffle } from "./shuffle";
 import { Emitter } from "./store";
 
 /** One independent deck being shuffled. */
 export interface Trial {
-  /** history[k] = deck order (original indices) after k shuffles. history[0] is unshuffled. */
+  /** history[k] = deck order (original indices) after k operations. history[0] is unshuffled. */
   history: number[][];
-  /** steps[k] is the shuffle that produced history[k + 1] from history[k]. */
-  steps: ShuffleStep[];
+  /** steps[k] is the operation that produced history[k + 1] from history[k]. */
+  steps: Step[];
 }
 
 export interface ExperimentConfig {
@@ -25,8 +26,9 @@ const DEFAULT_CONFIG: ExperimentConfig = {
 
 /**
  * Holds the full experiment state: every trial's (i.e. every independent
- * deck's) complete shuffle history. Visualizations read from this but never
- * mutate it, so switching between visualizations live retains all data.
+ * deck's) complete operation history. Visualizations read from this but
+ * never mutate it, so switching between visualizations live retains all
+ * data.
  */
 export class Experiment extends Emitter {
   deckSize: number;
@@ -64,11 +66,11 @@ export class Experiment extends Emitter {
     this.emit();
   }
 
-  /** Advances every trial by exactly one riffle shuffle. Returns the new step per trial. */
-  shuffleOnce(): ShuffleStep[] {
+  /** Advances every trial by exactly one operation of the given kind. Returns the new step per trial. */
+  perform(kind: OperationKind): Step[] {
     const steps = this.trials.map((trial) => {
       const current = trial.history[trial.history.length - 1];
-      const step = riffleShuffle(current, this.rng, this.biasK);
+      const step = this.performOne(kind, current);
       trial.steps.push(step);
       trial.history.push(step.result);
       return step;
@@ -77,7 +79,18 @@ export class Experiment extends Emitter {
     return steps;
   }
 
-  /** Position (0 = top of deck) of the given original card index after `shuffleIndex` shuffles, per trial. */
+  private performOne(kind: OperationKind, current: number[]): Step {
+    switch (kind) {
+      case "riffle":
+        return riffleShuffle(current, this.rng, this.biasK);
+      case "cut":
+        return cutDeck(current, this.rng);
+      case "overhand":
+        return overhandShuffle(current, this.rng);
+    }
+  }
+
+  /** Position (0 = top of deck) of the given original card index after `shuffleIndex` operations, per trial. */
   positionOf(trialIndex: number, shuffleIndex: number, originalCardIndex: number): number {
     return this.trials[trialIndex].history[shuffleIndex].indexOf(originalCardIndex);
   }
