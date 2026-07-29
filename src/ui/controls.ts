@@ -86,7 +86,7 @@ export class ControlsPanel {
       id: "trackedCard",
       label: "Track card # (0 = top)",
       min: 0,
-      max: MAX_DECK_SIZE - 1,
+      max: initial.deckSize - 1,
       value: initial.trackedCard,
       onInput: (v) => callbacks.onTrackedCardChange(v),
       onTogglePlay: () => callbacks.onTrackedCardPlayToggle(),
