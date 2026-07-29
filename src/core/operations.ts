@@ -19,12 +19,28 @@ export interface OverhandStep {
 
 export type Step = ShuffleStep | CutStep | OverhandStep;
 
-/** A single cut: the top `cutIndex` cards move to the bottom. Barely changes the deck — it's a rotation, not a randomization. */
-export function cutDeck(deck: readonly number[], rng: Rng): CutStep {
-  const n = deck.length;
-  const cutIndex = n > 1 ? 1 + Math.floor(rng() * (n - 1)) : 0;
+/**
+ * Samples where a cut happens: the top `cutIndex` cards will move to the
+ * bottom. Split out from `applyCut` so a caller running many trials in
+ * parallel can draw this once and apply the SAME cut to every trial — a
+ * cut has no randomness of its own (no per-card choices happen), so its
+ * only source of unpredictability is where it was cut. Drawing an
+ * independent cut point per trial would measure the variety of possible
+ * cut points, not how well a single cut randomizes a deck.
+ */
+export function sampleCutIndex(deckSize: number, rng: Rng): number {
+  return deckSize > 1 ? 1 + Math.floor(rng() * (deckSize - 1)) : 0;
+}
+
+/** Applies a cut at `cutIndex`: the top `cutIndex` cards move to the bottom. Barely changes the deck — it's a rotation, not a randomization. */
+export function applyCut(deck: readonly number[], cutIndex: number): CutStep {
   const result = [...deck.slice(cutIndex), ...deck.slice(0, cutIndex)];
   return { kind: "cut", result, cutIndex };
+}
+
+/** Convenience wrapper: samples a cut point and applies it in one step. */
+export function cutDeck(deck: readonly number[], rng: Rng): CutStep {
+  return applyCut(deck, sampleCutIndex(deck.length, rng));
 }
 
 const DEFAULT_MAX_PACKET_FRACTION = 0.18;

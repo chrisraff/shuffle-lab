@@ -41,4 +41,21 @@ describe("Experiment", () => {
     exp.reset();
     expect(notifications).toBe(2);
   });
+
+  it("cuts every trial at the same shared point", () => {
+    const exp = new Experiment({ deckSize: 20, numDecks: 50 });
+    const steps = exp.perform("cut");
+    const cutIndex = steps[0].kind === "cut" ? steps[0].cutIndex : -1;
+    expect(cutIndex).toBeGreaterThan(0);
+    for (const step of steps) {
+      expect(step.kind).toBe("cut");
+      expect(step.kind === "cut" && step.cutIndex).toBe(cutIndex);
+    }
+    // Every trial started identical, so a shared cut point means every
+    // trial's resulting deck order is identical too.
+    const first = exp.trials[0].history[1];
+    for (const trial of exp.trials) {
+      expect(trial.history[1]).toEqual(first);
+    }
+  });
 });

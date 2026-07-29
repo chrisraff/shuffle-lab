@@ -1,5 +1,5 @@
 import { createIdentityDeck } from "./deck";
-import { cutDeck, overhandShuffle, type OperationKind, type Step } from "./operations";
+import { applyCut, overhandShuffle, sampleCutIndex, type OperationKind, type Step } from "./operations";
 import { createRng, type Rng } from "./rng";
 import { DEFAULT_BIAS_K, riffleShuffle } from "./shuffle";
 import { Emitter } from "./store";
@@ -68,9 +68,17 @@ export class Experiment extends Emitter {
 
   /** Advances every trial by exactly one operation of the given kind. Returns the new step per trial. */
   perform(kind: OperationKind): Step[] {
+    // A cut has no randomness of its own — nothing card-by-card happens
+    // during it — so its only source of unpredictability is where it was
+    // cut. Sampling that once and sharing it across every trial measures
+    // how well A cut randomizes A deck; sampling it per trial would
+    // instead just measure the spread of possible cut points, which
+    // makes a cut look far more random than it is.
+    const sharedCutIndex = kind === "cut" ? sampleCutIndex(this.deckSize, this.rng) : undefined;
+
     const steps = this.trials.map((trial) => {
       const current = trial.history[trial.history.length - 1];
-      const step = this.performOne(kind, current);
+      const step = this.performOne(kind, current, sharedCutIndex);
       trial.steps.push(step);
       trial.history.push(step.result);
       return step;
@@ -79,12 +87,12 @@ export class Experiment extends Emitter {
     return steps;
   }
 
-  private performOne(kind: OperationKind, current: number[]): Step {
+  private performOne(kind: OperationKind, current: number[], sharedCutIndex?: number): Step {
     switch (kind) {
       case "riffle":
         return riffleShuffle(current, this.rng, this.biasK);
       case "cut":
-        return cutDeck(current, this.rng);
+        return applyCut(current, sharedCutIndex!);
       case "overhand":
         return overhandShuffle(current, this.rng);
     }
