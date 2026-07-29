@@ -3,6 +3,14 @@ import type { VizContext, VizRenderOptions, Visualization } from "./types";
 
 const MIN_TRIALS_FOR_SMOOTH_GRADIENT = 20;
 const BACKGROUND_COLOR = "#0f1115";
+/**
+ * Raw probability makes faint cells nearly invisible on a dark background
+ * (e.g. 1/52 ≈ 2% opacity) even though the difference from "impossible" is
+ * meaningful. Gamma-correcting the opacity (alpha = probability ** GAMMA)
+ * keeps 0 -> 0 and 1 -> 1 but boosts everything in between, so low-but-real
+ * probabilities stay legible without changing which cells are brighter.
+ */
+const VISIBILITY_GAMMA = 0.45;
 
 /** The card whose position we track — the one that started on top of the deck. */
 const TRACKED_CARD = 0;
@@ -22,7 +30,7 @@ export class FollowCardViz implements Visualization {
   id = "follow-card";
   label = "Follow One Card";
   description =
-    "Tracks the card that started on top of the deck across every trial. Each cell is that card's color averaged across all trials — solid where the card reliably ends up, fading to black where it rarely does.";
+    "Tracks the card that started on top of the deck across every trial. Each cell is that card's color averaged across all trials — solid where the card reliably ends up, fading towards black where it rarely does.";
 
   private container: HTMLElement | null = null;
   private noteEl: HTMLElement | null = null;
@@ -79,7 +87,7 @@ export class FollowCardViz implements Visualization {
         gfx.fillStyle = BACKGROUND_COLOR;
         gfx.fillRect(x, y, w, h);
         if (probability > 0) {
-          gfx.globalAlpha = probability;
+          gfx.globalAlpha = probability ** VISIBILITY_GAMMA;
           gfx.fillStyle = trackedColor;
           gfx.fillRect(x, y, w, h);
           gfx.globalAlpha = 1;
