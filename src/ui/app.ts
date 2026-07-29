@@ -137,9 +137,9 @@ export function mountApp(root: HTMLElement): void {
   }
 
   async function performOperation(kind: OperationKind, times: number = 1): Promise<void> {
-    // Only animate a single riffle shuffle on a single deck — cuts,
-    // overhand shuffles, bulk runs, and multi-deck runs redraw statically.
-    const animate = kind === "riffle" && times === 1 && experiment.numDecks === 1;
+    // Only animate a single operation on a single deck — bulk runs
+    // (Shuffle x5) and multi-deck runs redraw statically.
+    const animate = times === 1 && experiment.numDecks === 1;
     setControlsEnabled(false);
     try {
       for (let i = 0; i < times; i++) {
