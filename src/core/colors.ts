@@ -48,6 +48,11 @@ const sunsetGradient = stopGradient([
 
 export const COLOR_SCHEMES: ColorScheme[] = [
   {
+    id: "viridis",
+    label: "Viridis",
+    colorFor: (i, n) => viridisGradient(i / Math.max(1, n - 1)),
+  },
+  {
     id: "rainbow",
     label: "Rainbow",
     colorFor: (i, n) => {
@@ -56,22 +61,17 @@ export const COLOR_SCHEMES: ColorScheme[] = [
     },
   },
   {
-    id: "viridis",
-    label: "Viridis",
-    colorFor: (i, n) => viridisGradient(i / Math.max(1, n - 1)),
-  },
-  {
-    id: "sunset",
-    label: "Sunset",
-    colorFor: (i, n) => sunsetGradient(i / Math.max(1, n - 1)),
-  },
-  {
     id: "grayscale",
     label: "Grayscale",
     colorFor: (i, n) => {
       const l = lerp(12, 92, i / Math.max(1, n - 1));
       return `hsl(0, 0%, ${l}%)`;
     },
+  },
+  {
+    id: "sunset",
+    label: "Sunset",
+    colorFor: (i, n) => sunsetGradient(i / Math.max(1, n - 1)),
   },
 ];
 

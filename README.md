@@ -17,14 +17,15 @@ npm run build    # type-check and produce a production build
 
 ### Sandbox mode
 
-- **Deck size** / **Number of decks** — run up to 2000 independent decks (trials) in parallel, all starting unshuffled.
+- **Deck size** — how many cards.
+- **Number of decks** — a preset picker: **1**, **500**, or **2000** independent decks (trials) run in parallel. There's no reason to hand-pick an arbitrary count in between, and the choice implies which visualization makes sense (see below), so it drives that automatically.
 - **Shuffle** / **Shuffle ×5** — advance every deck by one (or five) riffle shuffle(s), simulated with the GSR model: the deck is cut at a `Binomial(n, 1/2)` point, then cards are drawn one at a time from the top of whichever remaining pile is proportionally larger (50/50 when the piles are equal, increasingly certain as one pile empties). This weighting is tuneable via a `biasK` exponent in `core/shuffle.ts`, though it isn't exposed in the UI yet.
 - **Cut** — a single cut: the top of the deck (at a random point) moves to the bottom. Barely changes anything — it's a rotation, not a randomization.
 - **Overhand** — the classic "lame" overhand shuffle: small packets are peeled off the top and stacked in reverse order. A famously weak shuffle, included so you can see just how little it mixes compared to a riffle.
-- Every column in the grid views is stamped with a small icon showing which of these produced it (✂ for cut, an interleave glyph for riffle, stacked bars for overhand).
-- **Visualization** — switch live between visualizations without losing any history:
-  - **Column History**: a grid where column *k* is the deck after *k* operations. With exactly one deck, a shuffle animates — a copy of the last column slides two columns over and splits into its two riffle piles (top pile up, bottom pile down), then cards drop back into the new column (one column over) in the exact order the simulation drew them. With more than one deck, showing every deck individually doesn't scale, so instead every trial's colors are **averaged together** — a cell where the same card reliably lands stays solid, one where trials disagree blends towards the other cards' colors. Watch a clean rainbow column 0 dissolve into a flat muddy wash by column 7.
-  - **Follow One Card**: pick any card via "Track card #" and aggregate every trial into a per-operation-count picture of where it ends up. Each cell is that card's color, alpha-blended over black by the fraction of trials it landed there (gamma-corrected so faint probabilities stay visible). At 0 shuffles it's a solid spike; watch it spread and fade as the operation count grows.
+- Every operation button, and every column in the grid views, is stamped with the same small icon for that operation (an interleave glyph for riffle, scissors for cut, stacked bars for overhand) so it's easy to tell what happened at a glance.
+- **Visualization** switches automatically with the deck count, because these two views don't mix well:
+  - **Column History** (1 deck): a grid where column *k* is the deck after *k* operations. A shuffle animates — a copy of the last column slides two columns over and splits into its two riffle piles (top pile up, bottom pile down), then cards drop back into the new column (one column over) in the exact order the simulation drew them. This view intentionally only ever shows one deck: averaging many decks' colors together converges to a flat blend almost immediately, well before the underlying permutations are actually close to random, which is misleading rather than informative.
+  - **Follow One Card** (500 or 2000 decks): drag the **Track card #** slider (or hit **▶** to auto-cycle through every card) to aggregate every trial into a per-operation-count picture of where that card ends up. Each cell is that card's color, alpha-blended over black by the fraction of trials it landed there (gamma-corrected so faint probabilities stay visible). At 0 shuffles it's a solid spike; watch it spread and fade as the operation count grows.
 
 ### Guided Lesson mode
 
@@ -46,8 +47,7 @@ src/
     types.ts          the Visualization interface every viz implements
     registry.ts        VIZ_REGISTRY — add a new visualization here to make it selectable
     grid.ts             shared canvas grid geometry + the per-column operation icon row
-    icons.ts             inline SVGs per OperationKind
-    colorMix.ts           RGB color averaging (used by Column History's multi-deck view)
+    icons.ts             inline SVGs per OperationKind, reused by the grid icons and the operation buttons
     columnHistoryViz.ts
     followCardViz.ts
   ui/

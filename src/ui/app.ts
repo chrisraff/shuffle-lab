@@ -8,15 +8,15 @@ import { LessonController, type LessonHost } from "./lesson";
 
 const DEFAULT_DECK_SIZE = 52;
 const DEFAULT_NUM_DECKS = 1;
-const DEFAULT_COLOR_SCHEME = "rainbow";
+const DEFAULT_COLOR_SCHEME = "sunset";
 const DEFAULT_VIZ = "column-history";
 const DEFAULT_TRACKED_CARD = 0;
+const PLAY_INTERVAL_MS = 500;
 
 const ALL_CONTROL_IDS = [
   "deckSize",
   "numDecks",
   "colorScheme",
-  "vizSelect",
   "trackedCard",
   "shuffleOnce",
   "shuffleFive",
@@ -54,6 +54,7 @@ export function mountApp(root: HTMLElement): void {
   const experiment = new Experiment({ deckSize: DEFAULT_DECK_SIZE, numDecks: DEFAULT_NUM_DECKS });
   let colorScheme = getColorScheme(DEFAULT_COLOR_SCHEME);
   let trackedCard = DEFAULT_TRACKED_CARD;
+  let playTimer: ReturnType<typeof setInterval> | null = null;
 
   function ctx(): VizContext {
     return { experiment, colorScheme, trackedCard };
@@ -62,16 +63,51 @@ export function mountApp(root: HTMLElement): void {
   let activeViz: Visualization = createVisualization(DEFAULT_VIZ);
   activeViz.mount(vizPanel, ctx());
 
+  function stopPlay(): void {
+    if (playTimer === null) return;
+    clearInterval(playTimer);
+    playTimer = null;
+    controls.setTrackedCardPlaying(false);
+  }
+
+  function startPlay(): void {
+    if (playTimer !== null) return;
+    controls.setTrackedCardPlaying(true);
+    playTimer = setInterval(() => {
+      setTrackedCard((trackedCard + 1) % experiment.deckSize);
+    }, PLAY_INTERVAL_MS);
+  }
+
+  function setViz(id: string): void {
+    if (id !== "follow-card") stopPlay();
+    activeViz.unmount();
+    activeViz = createVisualization(id);
+    activeViz.mount(vizPanel, ctx());
+    controls.get("trackedCard").setVisible(id === "follow-card");
+  }
+
   function setDeckSize(size: number): void {
+    stopPlay();
     experiment.reset({ deckSize: size });
     controls.get("deckSize").setValue(size);
+    controls.setTrackedCardMax(size - 1);
+    if (trackedCard > size - 1) {
+      trackedCard = size - 1;
+      controls.get("trackedCard").setValue(trackedCard);
+    }
     activeViz.render(ctx());
   }
 
+  /** A deck-count change always implies which visualization makes sense: one deck for Column History, more for Follow One Card. */
   function setNumDecks(numDecks: number): void {
     experiment.reset({ numDecks });
     controls.get("numDecks").setValue(numDecks);
-    activeViz.render(ctx());
+    const desiredViz = numDecks === 1 ? "column-history" : "follow-card";
+    if (activeViz.id !== desiredViz) {
+      setViz(desiredViz);
+    } else {
+      activeViz.render(ctx());
+    }
   }
 
   function setColorScheme(id: string): void {
@@ -80,18 +116,15 @@ export function mountApp(root: HTMLElement): void {
     activeViz.render(ctx());
   }
 
-  function setViz(id: string): void {
-    activeViz.unmount();
-    activeViz = createVisualization(id);
-    activeViz.mount(vizPanel, ctx());
-    controls.get("vizSelect").setValue(id);
-    controls.get("trackedCard").setVisible(id === "follow-card");
-  }
-
   function setTrackedCard(card: number): void {
     trackedCard = card;
     controls.get("trackedCard").setValue(card);
     activeViz.render(ctx());
+  }
+
+  function togglePlay(): void {
+    if (playTimer !== null) stopPlay();
+    else startPlay();
   }
 
   function doReset(): void {
@@ -124,15 +157,14 @@ export function mountApp(root: HTMLElement): void {
       deckSize: DEFAULT_DECK_SIZE,
       numDecks: DEFAULT_NUM_DECKS,
       colorSchemeId: DEFAULT_COLOR_SCHEME,
-      vizId: DEFAULT_VIZ,
       trackedCard: DEFAULT_TRACKED_CARD,
     },
     {
       onDeckSizeChange: setDeckSize,
       onNumDecksChange: setNumDecks,
       onColorSchemeChange: setColorScheme,
-      onVizChange: setViz,
       onTrackedCardChange: setTrackedCard,
+      onTrackedCardPlayToggle: togglePlay,
       onShuffle: (times) => {
         void performOperation("riffle", times);
       },

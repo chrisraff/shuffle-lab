@@ -1,12 +1,15 @@
 import { COLOR_SCHEMES } from "../core/colors";
-import { VIZ_REGISTRY } from "../viz/registry";
+import { OPERATION_ICON_SVG } from "../viz/icons";
+
+const PLAY_ICON_SVG = `<svg viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M4 2.5v11l10-5.5-10-5.5z"/></svg>`;
+const PAUSE_ICON_SVG = `<svg viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><rect x="3.5" y="2.5" width="3.4" height="11" rx="0.6"/><rect x="9.1" y="2.5" width="3.4" height="11" rx="0.6"/></svg>`;
 
 export interface ControlsCallbacks {
   onDeckSizeChange(size: number): void;
   onNumDecksChange(numDecks: number): void;
   onColorSchemeChange(colorSchemeId: string): void;
-  onVizChange(vizId: string): void;
   onTrackedCardChange(card: number): void;
+  onTrackedCardPlayToggle(): void;
   onShuffle(times: number): void;
   onCut(): void;
   onOverhand(): void;
@@ -17,7 +20,6 @@ export interface ControlsInitial {
   deckSize: number;
   numDecks: number;
   colorSchemeId: string;
-  vizId: string;
   trackedCard: number;
 }
 
@@ -34,18 +36,19 @@ export interface ControlHandle {
 
 const MIN_DECK_SIZE = 2;
 const MAX_DECK_SIZE = 300;
-const MIN_NUM_DECKS = 1;
-const MAX_NUM_DECKS = 2000;
+const NUM_DECKS_PRESETS = [1, 500, 2000];
 
 /**
  * Builds the sandbox control panel and exposes each control by id
- * (`deckSize`, `numDecks`, `colorScheme`, `vizSelect`, `trackedCard`,
- * `shuffleOnce`, `shuffleFive`, `cut`, `overhand`, `reset`) so a guided
- * lesson can later hide, disable, or highlight individual controls
- * programmatically without touching this file.
+ * (`deckSize`, `numDecks`, `colorScheme`, `trackedCard`, `shuffleOnce`,
+ * `shuffleFive`, `cut`, `overhand`, `reset`) so a guided lesson can later
+ * hide, disable, or highlight individual controls programmatically
+ * without touching this file.
  */
 export class ControlsPanel {
   private controls = new Map<string, ControlHandle>();
+  private trackedCardSlider: HTMLInputElement | null = null;
+  private trackedCardPlayButton: HTMLButtonElement | null = null;
 
   constructor(container: HTMLElement, initial: ControlsInitial, callbacks: ControlsCallbacks) {
     container.innerHTML = "";
@@ -63,13 +66,12 @@ export class ControlsPanel {
       onCommit: (v) => callbacks.onDeckSizeChange(v),
     });
 
-    this.registerNumberField(form, {
+    this.registerSegmentedField(form, {
       id: "numDecks",
-      label: "Number of decks (trials)",
-      min: MIN_NUM_DECKS,
-      max: MAX_NUM_DECKS,
+      label: "Number of decks",
+      options: NUM_DECKS_PRESETS.map((n) => ({ value: n, label: String(n) })),
       value: initial.numDecks,
-      onCommit: (v) => callbacks.onNumDecksChange(v),
+      onChange: (v) => callbacks.onNumDecksChange(v),
     });
 
     this.registerSelectField(form, {
@@ -80,23 +82,16 @@ export class ControlsPanel {
       onChange: (v) => callbacks.onColorSchemeChange(v),
     });
 
-    this.registerSelectField(form, {
-      id: "vizSelect",
-      label: "Visualization",
-      value: initial.vizId,
-      options: VIZ_REGISTRY.map((v) => ({ value: v.id, label: v.label })),
-      onChange: (v) => callbacks.onVizChange(v),
-    });
-
-    this.registerNumberField(form, {
+    this.registerTrackedCardField(form, {
       id: "trackedCard",
       label: "Track card # (0 = top)",
       min: 0,
       max: MAX_DECK_SIZE - 1,
       value: initial.trackedCard,
-      onCommit: (v) => callbacks.onTrackedCardChange(v),
+      onInput: (v) => callbacks.onTrackedCardChange(v),
+      onTogglePlay: () => callbacks.onTrackedCardPlayToggle(),
     });
-    this.get("trackedCard").setVisible(initial.vizId === "follow-card");
+    this.get("trackedCard").setVisible(initial.numDecks !== 1);
 
     const actions = document.createElement("div");
     actions.className = "control-field control-actions";
@@ -106,21 +101,25 @@ export class ControlsPanel {
       id: "shuffleOnce",
       label: "Shuffle",
       primary: true,
+      icon: OPERATION_ICON_SVG.riffle,
       onClick: () => callbacks.onShuffle(1),
     });
     this.registerButton(actions, {
       id: "shuffleFive",
       label: "Shuffle ×5",
+      icon: OPERATION_ICON_SVG.riffle,
       onClick: () => callbacks.onShuffle(5),
     });
     this.registerButton(actions, {
       id: "cut",
       label: "Cut",
+      icon: OPERATION_ICON_SVG.cut,
       onClick: () => callbacks.onCut(),
     });
     this.registerButton(actions, {
       id: "overhand",
       label: "Overhand",
+      icon: OPERATION_ICON_SVG.overhand,
       onClick: () => callbacks.onOverhand(),
     });
     this.registerButton(actions, {
@@ -135,6 +134,19 @@ export class ControlsPanel {
     const handle = this.controls.get(id);
     if (!handle) throw new Error(`Unknown control id: ${id}`);
     return handle;
+  }
+
+  /** Reflects the current play/pause state on the Track Card play button. */
+  setTrackedCardPlaying(playing: boolean): void {
+    if (!this.trackedCardPlayButton) return;
+    this.trackedCardPlayButton.innerHTML = playing ? PAUSE_ICON_SVG : PLAY_ICON_SVG;
+    this.trackedCardPlayButton.classList.toggle("is-playing", playing);
+    this.trackedCardPlayButton.setAttribute("aria-label", playing ? "Pause" : "Play");
+  }
+
+  /** Keeps the Track Card slider's range in sync with the current deck size. */
+  setTrackedCardMax(max: number): void {
+    if (this.trackedCardSlider) this.trackedCardSlider.max = String(max);
   }
 
   private registerHandle(
@@ -200,6 +212,111 @@ export class ControlsPanel {
     });
   }
 
+  private registerSegmentedField(
+    form: HTMLElement,
+    opts: {
+      id: string;
+      label: string;
+      options: Array<{ value: number; label: string }>;
+      value: number;
+      onChange: (value: number) => void;
+    },
+  ): void {
+    const field = document.createElement("div");
+    field.className = "control-field";
+    field.dataset.controlId = opts.id;
+
+    const labelEl = document.createElement("span");
+    labelEl.className = "control-label";
+    labelEl.textContent = opts.label;
+
+    const group = document.createElement("div");
+    group.className = "segmented-group";
+
+    const buttons = opts.options.map((option) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "segmented-option";
+      btn.textContent = option.label;
+      btn.classList.toggle("active", option.value === opts.value);
+      btn.addEventListener("click", () => {
+        for (const b of buttons) b.classList.remove("active");
+        btn.classList.add("active");
+        opts.onChange(option.value);
+      });
+      group.appendChild(btn);
+      return btn;
+    });
+
+    field.append(labelEl, group);
+    form.appendChild(field);
+    this.registerHandle(opts.id, field, (value) => {
+      const numeric = Number(value);
+      buttons.forEach((btn, i) => btn.classList.toggle("active", opts.options[i].value === numeric));
+    });
+  }
+
+  private registerTrackedCardField(
+    form: HTMLElement,
+    opts: {
+      id: string;
+      label: string;
+      min: number;
+      max: number;
+      value: number;
+      onInput: (value: number) => void;
+      onTogglePlay: () => void;
+    },
+  ): void {
+    const field = document.createElement("div");
+    field.className = "control-field";
+    field.dataset.controlId = opts.id;
+
+    const labelEl = document.createElement("span");
+    labelEl.className = "control-label";
+    labelEl.textContent = opts.label;
+
+    const row = document.createElement("div");
+    row.className = "track-card-row";
+
+    const slider = document.createElement("input");
+    slider.type = "range";
+    slider.className = "track-card-slider";
+    slider.min = String(opts.min);
+    slider.max = String(opts.max);
+    slider.value = String(opts.value);
+
+    const valueEl = document.createElement("span");
+    valueEl.className = "track-card-value";
+    valueEl.textContent = String(opts.value);
+
+    const playButton = document.createElement("button");
+    playButton.type = "button";
+    playButton.className = "btn btn-play";
+    playButton.innerHTML = PLAY_ICON_SVG;
+    playButton.setAttribute("aria-label", "Play");
+
+    slider.addEventListener("input", () => {
+      const v = Number(slider.value);
+      valueEl.textContent = String(v);
+      opts.onInput(v);
+    });
+    playButton.addEventListener("click", () => opts.onTogglePlay());
+
+    row.append(slider, valueEl, playButton);
+    field.append(labelEl, row);
+    form.appendChild(field);
+
+    this.trackedCardSlider = slider;
+    this.trackedCardPlayButton = playButton;
+
+    this.registerHandle(opts.id, field, (value) => {
+      const v = Number(value);
+      slider.value = String(v);
+      valueEl.textContent = String(v);
+    });
+  }
+
   private registerSelectField(
     form: HTMLElement,
     opts: {
@@ -237,7 +354,7 @@ export class ControlsPanel {
 
   private registerButton(
     container: HTMLElement,
-    opts: { id: string; label: string; primary?: boolean; danger?: boolean; onClick: () => void },
+    opts: { id: string; label: string; primary?: boolean; danger?: boolean; icon?: string; onClick: () => void },
   ): void {
     const field = document.createElement("div");
     field.className = "control-field control-button-field";
@@ -245,8 +362,14 @@ export class ControlsPanel {
 
     const button = document.createElement("button");
     button.type = "button";
-    button.textContent = opts.label;
     button.className = opts.primary ? "btn btn-primary" : opts.danger ? "btn btn-danger" : "btn";
+    if (opts.icon) {
+      const iconEl = document.createElement("span");
+      iconEl.className = "btn-icon";
+      iconEl.innerHTML = opts.icon;
+      button.appendChild(iconEl);
+    }
+    button.appendChild(document.createTextNode(opts.label));
     button.addEventListener("click", opts.onClick);
 
     field.appendChild(button);

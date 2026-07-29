@@ -1,7 +1,6 @@
-import type { Trial } from "../core/experiment";
 import type { ColorScheme } from "../core/colors";
+import type { Trial } from "../core/experiment";
 import type { OperationKind } from "../core/operations";
-import { buildColorTable } from "./colorMix";
 import { CELL_WIDTH, HEADER_HEIGHT, buildStepIconRow, computeCellHeight, createGridCanvas, fillCell } from "./grid";
 import type { VizContext, VizRenderOptions, Visualization } from "./types";
 
@@ -19,30 +18,28 @@ function nextFrame(): Promise<void> {
 }
 
 /**
- * The primary sandbox visualization: a grid where column 0 is the
+ * The single-deck sandbox visualization: a grid where column 0 is the
  * unshuffled deck, column k is the deck after k operations, and each
  * cell's color is a card's ORIGINAL position. Watching the color pattern
  * break up left-to-right is watching the deck randomize. A small icon
  * above each column shows which operation (riffle, cut, overhand)
  * produced it.
  *
- * With exactly one trial (one deck), the grid shows that deck's real
- * arrangement, and a fresh riffle shuffle animates: a copy of the most
- * recent column slides two columns over and splits into its two riffle
- * piles (top pile up, bottom pile down) — giving room to watch them
- * clearly — then the cards drop one at a time back into the new column
- * (one column over) following the exact pile each was drawn from.
- *
- * With more than one trial, showing every deck individually doesn't
- * scale, so the grid instead shows every trial's colors AVERAGED
- * together: a cell where the same card reliably lands is solid, one
- * where trials disagree blends towards the other cards' colors.
+ * Only makes sense for one deck at a time — averaging many decks'
+ * colors together converges to a flat blend well before the underlying
+ * permutations are actually random, which is misleading, so the app
+ * only mounts this view when there's exactly one trial (see
+ * `ui/app.ts`'s deck-count preset). A fresh riffle shuffle animates: a
+ * copy of the most recent column slides two columns over and splits
+ * into its two riffle piles (top pile up, bottom pile down) — giving
+ * room to watch them clearly — then the cards drop one at a time back
+ * into the new column (one column over) following the exact pile each
+ * was drawn from.
  */
 export class ColumnHistoryViz implements Visualization {
   id = "column-history";
   label = "Column History";
-  description =
-    "Each column is the deck after N operations. Row = position in the deck, color = the card's original position. With multiple decks, colors are averaged across all of them.";
+  description = "Each column is the deck after N operations. Row = position in the deck, color = the card's original position.";
 
   private container: HTMLElement | null = null;
   private trialsEl: HTMLElement | null = null;
@@ -54,7 +51,6 @@ export class ColumnHistoryViz implements Visualization {
         <h2>${this.label}</h2>
         <p class="viz-desc">${this.description}</p>
       </div>
-      <div class="viz-note"></div>
       <div class="column-history-trials"></div>
     `;
     this.trialsEl = container.querySelector<HTMLElement>(".column-history-trials");
@@ -73,21 +69,12 @@ export class ColumnHistoryViz implements Visualization {
   }
 
   private renderStatic(ctx: VizContext): void {
-    if (!this.container || !this.trialsEl) return;
+    if (!this.trialsEl) return;
     const { experiment, colorScheme } = ctx;
-    const noteEl = this.container.querySelector<HTMLElement>(".viz-note");
 
     this.trialsEl.innerHTML = "";
-
-    if (experiment.trials.length === 1) {
-      if (noteEl) noteEl.textContent = "";
-      const { wrap } = buildTrialGrid(experiment.trials[0], experiment.deckSize, colorScheme);
-      this.trialsEl.appendChild(wrap);
-      return;
-    }
-
-    if (noteEl) noteEl.textContent = `Colors averaged across ${experiment.trials.length} decks.`;
-    this.trialsEl.appendChild(buildAveragedGrid(experiment.trials, experiment.deckSize, colorScheme));
+    const { wrap } = buildTrialGrid(experiment.trials[0], experiment.deckSize, colorScheme);
+    this.trialsEl.appendChild(wrap);
   }
 
   private async animateLatestShuffle(ctx: VizContext): Promise<void> {
@@ -212,42 +199,4 @@ function buildTrialGrid(
   stage.appendChild(buildStepIconRow(visibleColumns, (col) => stepKindAt(trial, col)));
   wrap.appendChild(stage);
   return { wrap, stage, canvas };
-}
-
-function buildAveragedGrid(trials: Trial[], deckSize: number, colorScheme: ColorScheme): HTMLElement {
-  const wrap = document.createElement("div");
-  wrap.className = "deck-grid-wrap";
-
-  const stage = document.createElement("div");
-  stage.className = "deck-grid-stage";
-
-  const columns = trials[0]?.history.length ?? 1;
-  const numTrials = trials.length;
-  const { canvas, gfx, cellHeight } = createGridCanvas(columns, deckSize);
-  const colorTable = buildColorTable(colorScheme, deckSize);
-  const sums = new Float64Array(deckSize * 3);
-
-  for (let c = 0; c < columns; c++) {
-    sums.fill(0);
-    for (const trial of trials) {
-      const order = trial.history[c];
-      for (let r = 0; r < deckSize; r++) {
-        const card = order[r];
-        sums[r * 3] += colorTable[card * 3];
-        sums[r * 3 + 1] += colorTable[card * 3 + 1];
-        sums[r * 3 + 2] += colorTable[card * 3 + 2];
-      }
-    }
-    for (let r = 0; r < deckSize; r++) {
-      const rr = Math.round(sums[r * 3] / numTrials);
-      const gg = Math.round(sums[r * 3 + 1] / numTrials);
-      const bb = Math.round(sums[r * 3 + 2] / numTrials);
-      fillCell(gfx, c, r, cellHeight, `rgb(${rr}, ${gg}, ${bb})`);
-    }
-  }
-
-  stage.appendChild(canvas);
-  stage.appendChild(buildStepIconRow(columns, (col) => stepKindAt(trials[0], col)));
-  wrap.appendChild(stage);
-  return wrap;
 }

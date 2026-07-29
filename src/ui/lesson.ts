@@ -27,7 +27,6 @@ const ALL_CONTROL_IDS = [
   "deckSize",
   "numDecks",
   "colorScheme",
-  "vizSelect",
   "trackedCard",
   "shuffleOnce",
   "shuffleFive",
@@ -37,7 +36,7 @@ const ALL_CONTROL_IDS = [
 ];
 
 /** Controls this simple lesson doesn't need — kept hidden throughout so the UI stays focused on the riffle shuffle story. */
-const ADVANCED_CONTROL_IDS = ["numDecks", "vizSelect", "trackedCard", "cut", "overhand"];
+const ADVANCED_CONTROL_IDS = ["numDecks", "trackedCard", "cut", "overhand"];
 
 const FULLY_RANDOM_SHUFFLE_COUNT = 7;
 
