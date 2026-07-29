@@ -1,19 +1,14 @@
 import type { Trial } from "../core/experiment";
 import type { ColorScheme } from "../core/colors";
+import { CELL_WIDTH, HEADER_HEIGHT, computeCellHeight, createGridCanvas, fillCell } from "./grid";
 import type { VizContext, VizRenderOptions, Visualization } from "./types";
 
-const CELL_WIDTH = 22;
-const HEADER_HEIGHT = 18;
 const MAX_VISIBLE_TRIALS = 12;
 
 const SPLIT_DURATION_MS = 450;
 const DROP_DURATION_MS = 180;
 const MAX_DROP_STAGGER_MS = 16;
 const TARGET_DROP_PHASE_MS = 1400;
-
-function computeCellHeight(deckSize: number): number {
-  return Math.max(2, Math.min(10, Math.round(420 / deckSize)));
-}
 
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -187,35 +182,13 @@ function buildTrialGrid(
   const stage = document.createElement("div");
   stage.className = "deck-grid-stage";
 
-  const canvas = document.createElement("canvas");
   const totalColumns = trial.history.length;
-  const cellHeight = computeCellHeight(deckSize);
-  const widthCss = totalColumns * CELL_WIDTH;
-  const heightCss = HEADER_HEIGHT + deckSize * cellHeight;
-  const dpr = window.devicePixelRatio || 1;
+  const { canvas, gfx, cellHeight } = createGridCanvas(totalColumns, deckSize);
 
-  canvas.style.width = `${widthCss}px`;
-  canvas.style.height = `${heightCss}px`;
-  canvas.width = widthCss * dpr;
-  canvas.height = heightCss * dpr;
-
-  const gfx = canvas.getContext("2d")!;
-  gfx.scale(dpr, dpr);
-  gfx.fillStyle = "#0f1115";
-  gfx.fillRect(0, 0, widthCss, heightCss);
-  gfx.fillStyle = "#9aa1ac";
-  gfx.font = "10px system-ui, sans-serif";
-  gfx.textAlign = "center";
-  for (let c = 0; c < totalColumns; c++) {
-    gfx.fillText(String(c), c * CELL_WIDTH + CELL_WIDTH / 2, 12);
-  }
-
-  const cellGap = cellHeight > 3 ? 1 : 0;
   for (let c = 0; c < visibleColumns; c++) {
     const order = trial.history[c];
     for (let r = 0; r < deckSize; r++) {
-      gfx.fillStyle = colorScheme.colorFor(order[r], deckSize);
-      gfx.fillRect(c * CELL_WIDTH, HEADER_HEIGHT + r * cellHeight, CELL_WIDTH - 1, cellHeight - cellGap);
+      fillCell(gfx, c, r, cellHeight, colorScheme.colorFor(order[r], deckSize));
     }
   }
 

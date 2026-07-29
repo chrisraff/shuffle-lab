@@ -1,26 +1,28 @@
-import type { ColorScheme } from "../core/colors";
+import { CELL_WIDTH, HEADER_HEIGHT, createGridCanvas } from "./grid";
 import type { VizContext, VizRenderOptions, Visualization } from "./types";
 
-const PANEL_WIDTH = 150;
-const PANEL_HEIGHT = 130;
-const HEADER_HEIGHT = 18;
-const AXIS_HEIGHT = 14;
-const MIN_TRIALS_FOR_SMOOTH_HISTOGRAM = 20;
+const MIN_TRIALS_FOR_SMOOTH_GRADIENT = 20;
+const BACKGROUND_COLOR = "#0f1115";
 
 /** The card whose position we track — the one that started on top of the deck. */
 const TRACKED_CARD = 0;
 
 /**
- * Aggregates every trial (independent deck) into, for each shuffle count k,
- * a histogram of where the tracked card ended up. At k = 0 it's a single
- * spike at position 0; as k grows the histogram widens until it's roughly
- * flat, which is the visual signature of the deck becoming random.
+ * Same grid as Column History (row = position, column = shuffle count), but
+ * instead of drawing one trial's actual arrangement, each cell shows the
+ * TRACKED card's color averaged across every trial: a cell where the card
+ * landed in, say, 100% of trials is drawn in full color, one where it
+ * landed in 2% of trials is drawn as a faint wash of that color over black.
+ * At 0 shuffles that's a solid color at row 0 and black everywhere else; as
+ * shuffles increase the color spreads out and fades, because the tracked
+ * card is only ever in one place per trial and "being averaged" with black
+ * everywhere it wasn't.
  */
 export class FollowCardViz implements Visualization {
   id = "follow-card";
   label = "Follow One Card";
   description =
-    "Tracks the card that started on top of the deck across every trial, showing how its position spreads out as the number of shuffles grows.";
+    "Tracks the card that started on top of the deck across every trial. Each cell is that card's color averaged across all trials — solid where the card reliably ends up, fading to black where it rarely does.";
 
   private container: HTMLElement | null = null;
   private noteEl: HTMLElement | null = null;
@@ -45,39 +47,44 @@ export class FollowCardViz implements Visualization {
     if (!this.scrollEl || !this.noteEl) return;
     const { experiment, colorScheme } = ctx;
     const deckSize = experiment.deckSize;
-    const panelCount = experiment.shuffleCount + 1;
+    const columns = experiment.shuffleCount + 1;
     const numTrials = experiment.trials.length;
 
     this.noteEl.textContent =
-      numTrials < MIN_TRIALS_FOR_SMOOTH_HISTOGRAM
-        ? `Using ${numTrials} trial${numTrials === 1 ? "" : "s"} — raise "Number of decks" for a smoother distribution.`
-        : `Aggregating ${numTrials} trials.`;
+      numTrials < MIN_TRIALS_FOR_SMOOTH_GRADIENT
+        ? `Using ${numTrials} trial${numTrials === 1 ? "" : "s"} — raise "Number of decks" for a smoother gradient.`
+        : `Averaging ${numTrials} trials.`;
 
-    const counts: number[][] = Array.from({ length: panelCount }, () => new Array(deckSize).fill(0));
+    const counts: number[][] = Array.from({ length: columns }, () => new Array(deckSize).fill(0));
     for (const trial of experiment.trials) {
-      for (let k = 0; k < panelCount; k++) {
+      for (let k = 0; k < columns; k++) {
         const pos = trial.history[k].indexOf(TRACKED_CARD);
         counts[k][pos]++;
       }
     }
 
     this.scrollEl.innerHTML = "";
-    const canvas = document.createElement("canvas");
-    const widthCss = panelCount * PANEL_WIDTH;
-    const heightCss = HEADER_HEIGHT + PANEL_HEIGHT + AXIS_HEIGHT;
-    const dpr = window.devicePixelRatio || 1;
-    canvas.style.width = `${widthCss}px`;
-    canvas.style.height = `${heightCss}px`;
-    canvas.width = widthCss * dpr;
-    canvas.height = heightCss * dpr;
+    const { canvas, gfx, cellHeight } = createGridCanvas(columns, deckSize);
+    const trackedColor = colorScheme.colorFor(TRACKED_CARD, deckSize);
+    const cellGap = cellHeight > 3 ? 1 : 0;
 
-    const gfx = canvas.getContext("2d")!;
-    gfx.scale(dpr, dpr);
-    gfx.fillStyle = "#0f1115";
-    gfx.fillRect(0, 0, widthCss, heightCss);
+    for (let c = 0; c < columns; c++) {
+      for (let r = 0; r < deckSize; r++) {
+        const probability = counts[c][r] / numTrials;
+        const x = c * CELL_WIDTH;
+        const y = HEADER_HEIGHT + r * cellHeight;
+        const w = CELL_WIDTH - 1;
+        const h = cellHeight - cellGap;
 
-    for (let k = 0; k < panelCount; k++) {
-      drawPanel(gfx, k, counts[k], deckSize, colorScheme, numTrials);
+        gfx.fillStyle = BACKGROUND_COLOR;
+        gfx.fillRect(x, y, w, h);
+        if (probability > 0) {
+          gfx.globalAlpha = probability;
+          gfx.fillStyle = trackedColor;
+          gfx.fillRect(x, y, w, h);
+          gfx.globalAlpha = 1;
+        }
+      }
     }
 
     this.scrollEl.appendChild(canvas);
@@ -89,46 +96,4 @@ export class FollowCardViz implements Visualization {
     this.noteEl = null;
     this.scrollEl = null;
   }
-}
-
-function drawPanel(
-  gfx: CanvasRenderingContext2D,
-  panelIndex: number,
-  counts: number[],
-  deckSize: number,
-  colorScheme: ColorScheme,
-  numTrials: number,
-): void {
-  const x0 = panelIndex * PANEL_WIDTH;
-  const plotTop = HEADER_HEIGHT;
-  const plotHeight = PANEL_HEIGHT;
-  const maxCount = Math.max(1, ...counts);
-
-  gfx.fillStyle = "#9aa1ac";
-  gfx.font = "10px system-ui, sans-serif";
-  gfx.textAlign = "center";
-  gfx.fillText(`${panelIndex} shuffle${panelIndex === 1 ? "" : "s"}`, x0 + PANEL_WIDTH / 2, 12);
-
-  const barGap = deckSize > 60 ? 0 : 1;
-  const barWidth = Math.max(1, PANEL_WIDTH / deckSize - barGap);
-
-  for (let pos = 0; pos < deckSize; pos++) {
-    const count = counts[pos];
-    if (count === 0) continue;
-    const barHeight = (count / maxCount) * (plotHeight - 4);
-    const barX = x0 + (pos / deckSize) * PANEL_WIDTH;
-    const barY = plotTop + plotHeight - barHeight;
-    gfx.fillStyle = colorScheme.colorFor(pos, deckSize);
-    gfx.fillRect(barX, barY, barWidth, barHeight);
-  }
-
-  gfx.strokeStyle = "#2a2f3a";
-  gfx.beginPath();
-  gfx.moveTo(x0, plotTop + plotHeight + 0.5);
-  gfx.lineTo(x0 + PANEL_WIDTH, plotTop + plotHeight + 0.5);
-  gfx.stroke();
-
-  gfx.fillStyle = "#6b7280";
-  gfx.font = "9px system-ui, sans-serif";
-  gfx.fillText(`peak ${Math.round((maxCount / numTrials) * 100)}%`, x0 + PANEL_WIDTH / 2, plotTop + plotHeight + AXIS_HEIGHT - 2);
 }
