@@ -11,7 +11,7 @@ const DEFAULT_NUM_DECKS = 1;
 const DEFAULT_COLOR_SCHEME = "sunset";
 const DEFAULT_VIZ = "column-history";
 const DEFAULT_TRACKED_CARD = 0;
-const PLAY_INTERVAL_MS = 500;
+const PLAY_INTERVAL_MS = 100;
 
 const ALL_CONTROL_IDS = [
   "deckSize",
