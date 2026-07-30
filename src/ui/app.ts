@@ -100,7 +100,7 @@ export function mountApp(root: HTMLElement): void {
 
   /** A deck-count change always implies which visualization makes sense: one deck for Column History, more for Follow One Card. */
   function setNumDecks(numDecks: number): void {
-    experiment.reset({ numDecks });
+    experiment.setNumDecks(numDecks);
     controls.get("numDecks").setValue(numDecks);
     const desiredViz = numDecks === 1 ? "column-history" : "follow-card";
     if (activeViz.id !== desiredViz) {

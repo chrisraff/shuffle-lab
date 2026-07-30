@@ -66,6 +66,42 @@ export class Experiment extends Emitter {
     this.emit();
   }
 
+  /**
+   * Changes the trial count without discarding history. Growing replays
+   * the existing operation sequence onto each new trial — cuts reuse the
+   * exact cut point already shared by the other trials at that step (the
+   * same "one shared draw" rule `perform` uses), while riffles and
+   * overhand shuffles draw fresh per-trial randomness — so every trial
+   * ends up at the same shuffle count. Shrinking just drops trials off
+   * the end; nothing is recomputed.
+   */
+  setNumDecks(numDecks: number): void {
+    if (numDecks === this.numDecks) return;
+    if (numDecks < this.numDecks) {
+      this.trials = this.trials.slice(0, numDecks);
+    } else {
+      const referenceSteps = this.trials[0]?.steps ?? [];
+      const additional = Array.from({ length: numDecks - this.trials.length }, () =>
+        this.backfillTrial(referenceSteps),
+      );
+      this.trials = [...this.trials, ...additional];
+    }
+    this.numDecks = numDecks;
+    this.emit();
+  }
+
+  private backfillTrial(referenceSteps: Step[]): Trial {
+    const trial: Trial = { history: [createIdentityDeck(this.deckSize)], steps: [] };
+    for (const refStep of referenceSteps) {
+      const current = trial.history[trial.history.length - 1];
+      const cutIndex = refStep.kind === "cut" ? refStep.cutIndex : undefined;
+      const step = this.performOne(refStep.kind, current, cutIndex);
+      trial.steps.push(step);
+      trial.history.push(step.result);
+    }
+    return trial;
+  }
+
   /** Advances every trial by exactly one operation of the given kind. Returns the new step per trial. */
   perform(kind: OperationKind): Step[] {
     // A cut has no randomness of its own — nothing card-by-card happens

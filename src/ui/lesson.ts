@@ -59,8 +59,12 @@ function showControls(controls: ControlsPanel, ids: string[]): void {
   for (const id of ids) controls.get(id).setVisible(true);
 }
 
+/** Locks down controls during animated/automated steps — color scheme is exempt so the user can always restyle the view. */
 function disableAllControls(controls: ControlsPanel): void {
-  for (const id of ALL_CONTROL_IDS) controls.get(id).setEnabled(false);
+  for (const id of ALL_CONTROL_IDS) {
+    if (id === "colorScheme") continue;
+    controls.get(id).setEnabled(false);
+  }
 }
 
 /** Runs a sequence of operations back-to-back (used to interleave riffles and cuts). */
@@ -144,6 +148,7 @@ const STEPS: LessonStep[] = [
       hideAdvancedControls(host.controls);
       host.controls.get("deckSize").setEnabled(false);
       host.setNumDecks(1);
+      host.reset();
       showControls(host.controls, ["overhand"]);
       host.controls.get("overhand").setHighlighted(true);
       host.controls.get("shuffleOnce").setVisible(false);
@@ -177,6 +182,7 @@ const STEPS: LessonStep[] = [
       hideAdvancedControls(host.controls);
       host.controls.get("deckSize").setEnabled(false);
       host.setNumDecks(1);
+      host.reset();
       showControls(host.controls, ["cut"]);
       host.controls.get("cut").setHighlighted(true);
       host.controls.get("shuffleOnce").setVisible(false);
@@ -192,6 +198,7 @@ const STEPS: LessonStep[] = [
       hideAdvancedControls(host.controls);
       host.controls.get("deckSize").setEnabled(false);
       disableAllControls(host.controls);
+      host.reset();
       host.setNumDecks(2000);
       await runSequence(host, ["riffle", "cut", "riffle", "cut", "riffle", "cut", "riffle"]);
       // runOperation re-enables everything each time it resolves — lock back
