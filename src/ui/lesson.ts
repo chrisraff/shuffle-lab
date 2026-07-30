@@ -71,7 +71,7 @@ async function runSequence(host: LessonHost, kinds: OperationKind[]): Promise<vo
 const STEPS: LessonStep[] = [
   {
     title: "Welcome",
-    body: "A riffle shuffle cuts a deck in two and interleaves the halves back together. Every card here is colored by where it started, so watching the colors scatter is watching the deck randomize — in the Column History view to the right.",
+    body: "A riffle shuffle cuts a deck in two and interleaves the halves back together. Every card here is colored by where it started, so watching the colors scatter is watching the deck randomize — in the Column History view below.",
     onEnter: (host) => {
       host.setViz("column-history");
       host.setColorScheme("sunset");
@@ -119,7 +119,7 @@ const STEPS: LessonStep[] = [
   },
   {
     title: "The tell",
-    body: 'Instead of shuffling one deck, imagine 2000 separate decks, each shuffled four times — same number of shuffles, but no two shuffles ever come out quite the same, just like real life. We track ONE card (drag the slider, or hit ▶ to sweep through all of them) and watch where it lands across those 2000 decks. Brighter means more of the 2000 decks put that card there.\n\nNotice the top and bottom rows stay dim almost everywhere except near their own starting spot — four shuffles usually isn\'t enough to send a card from one end of the deck to the other. If you were hunting for, say, the bottom card from the last hand, you\'d do better checking the bottom half of the deck than anywhere else.',
+    body: 'Instead of shuffling one deck, imagine 2000 separate decks, each shuffled four times — same number of shuffles, but no two shuffles ever come out quite the same, just like real life. We track ONE card (drag the slider, or hit ▶ to sweep through all of them) and watch where it lands across those 2000 decks. Brighter means more of the 2000 decks put that card there.\n\nSlide to a card near the top or bottom and its landing spots stay noticeably correlated with where it started — four shuffles usually isn\'t enough to send an edge card to the far side of the deck. Slide to a card near the middle, though, and the picture spreads out much more evenly. If you were hunting for, say, the bottom card from the last hand, you\'d do better checking the bottom half of the deck than anywhere else.',
     onEnter: async (host) => {
       resetControlChrome(host.controls);
       hideAdvancedControls(host.controls);
