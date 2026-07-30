@@ -1,7 +1,7 @@
 import { createIdentityDeck } from "./deck";
 import { applyCut, overhandShuffle, sampleCutIndex, type OperationKind, type Step } from "./operations";
 import { createRng, type Rng } from "./rng";
-import { DEFAULT_BIAS_K, riffleShuffle } from "./shuffle";
+import { DEFAULT_BIAS_K, perfectShuffle, riffleShuffle } from "./shuffle";
 import { Emitter } from "./store";
 
 /** One independent deck being shuffled. */
@@ -115,6 +115,24 @@ export class Experiment extends Emitter {
     const steps = this.trials.map((trial) => {
       const current = trial.history[trial.history.length - 1];
       const step = this.performOne(kind, current, sharedCutIndex);
+      trial.steps.push(step);
+      trial.history.push(step.result);
+      return step;
+    });
+    this.emit();
+    return steps;
+  }
+
+  /**
+   * Advances every trial by one deterministic perfect (out-)shuffle — no
+   * randomness to sample, so unlike `perform` there's no rng involved.
+   * Kept separate from `OperationKind`/`perform` since it isn't one of the
+   * three shuffle kinds tracked per column icon.
+   */
+  performPerfectShuffle(): Step[] {
+    const steps = this.trials.map((trial) => {
+      const current = trial.history[trial.history.length - 1];
+      const step = perfectShuffle(current);
       trial.steps.push(step);
       trial.history.push(step.result);
       return step;

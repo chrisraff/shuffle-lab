@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createIdentityDeck } from "./deck";
 import { createRng } from "./rng";
-import { riffleShuffle } from "./shuffle";
+import { perfectShuffle, riffleShuffle } from "./shuffle";
 
 describe("riffleShuffle", () => {
   it("produces a valid permutation of the deck", () => {
@@ -56,5 +56,44 @@ describe("riffleShuffle", () => {
     }
 
     expect(wentToLargerPile / biasedDecisions).toBeGreaterThan(0.5);
+  });
+});
+
+describe("perfectShuffle", () => {
+  it("produces a valid permutation of the deck", () => {
+    const deck = createIdentityDeck(52);
+    const { result } = perfectShuffle(deck);
+    expect(result).toHaveLength(52);
+    expect(new Set(result).size).toBe(52);
+    expect([...result].sort((a, b) => a - b)).toEqual(deck);
+  });
+
+  it("is fully deterministic — no randomness involved", () => {
+    const deck = createIdentityDeck(52);
+    expect(perfectShuffle(deck).result).toEqual(perfectShuffle(deck).result);
+  });
+
+  it("keeps the top and bottom card in place, out-shuffle style", () => {
+    const deck = createIdentityDeck(52);
+    const { result } = perfectShuffle(deck);
+    expect(result[0]).toBe(deck[0]);
+    expect(result[result.length - 1]).toBe(deck[deck.length - 1]);
+  });
+
+  it("returns a 52-card deck to its original order after exactly 8 shuffles", () => {
+    let deck = createIdentityDeck(52);
+    for (let i = 0; i < 7; i++) {
+      deck = perfectShuffle(deck).result;
+      expect(deck).not.toEqual(createIdentityDeck(52));
+    }
+    deck = perfectShuffle(deck).result;
+    expect(deck).toEqual(createIdentityDeck(52));
+  });
+
+  it("handles an odd-sized deck by giving the extra card to the top pile", () => {
+    const deck = createIdentityDeck(5);
+    const { result, cutIndex } = perfectShuffle(deck);
+    expect(cutIndex).toBe(3);
+    expect(result).toEqual([0, 3, 1, 4, 2]);
   });
 });

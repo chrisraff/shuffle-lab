@@ -13,6 +13,7 @@ export interface ControlsCallbacks {
   onShuffle(times: number): void;
   onCut(): void;
   onOverhand(): void;
+  onPerfectShuffle(): void;
   onReset(): void;
 }
 
@@ -41,9 +42,9 @@ const NUM_DECKS_PRESETS = [1, 500, 2000];
 /**
  * Builds the sandbox control panel and exposes each control by id
  * (`deckSize`, `numDecks`, `colorScheme`, `trackedCard`, `shuffleOnce`,
- * `shuffleFive`, `cut`, `overhand`, `reset`) so a guided lesson can later
- * hide, disable, or highlight individual controls programmatically
- * without touching this file.
+ * `shuffleFive`, `cut`, `overhand`, `perfectShuffle`, `reset`) so a guided
+ * lesson can later hide, disable, or highlight individual controls
+ * programmatically without touching this file.
  */
 export class ControlsPanel {
   private controls = new Map<string, ControlHandle>();
@@ -121,6 +122,12 @@ export class ControlsPanel {
       label: "Overhand",
       icon: OPERATION_ICON_SVG.overhand,
       onClick: () => callbacks.onOverhand(),
+    });
+    this.registerButton(actions, {
+      id: "perfectShuffle",
+      label: "Perfect Shuffle",
+      icon: OPERATION_ICON_SVG.riffle,
+      onClick: () => callbacks.onPerfectShuffle(),
     });
     this.registerButton(actions, {
       id: "reset",

@@ -74,3 +74,35 @@ export function riffleShuffle(
 
   return { kind: "riffle", result, cutIndex, sourceSequence };
 }
+
+/**
+ * A deterministic "perfect" riffle: cut the deck into two exactly equal
+ * halves (the top pile absorbs the odd card out, if any) and interleave
+ * them card-for-card, alternating from the top pile first — an out-shuffle.
+ * No randomness at all, which is the point: it's the classic demonstration
+ * that repeating the exact same interleave returns a 52-card deck to its
+ * original order after 8 shuffles, unlike a real riffle.
+ */
+export function perfectShuffle(deck: readonly number[]): ShuffleStep {
+  const n = deck.length;
+  const cutIndex = Math.ceil(n / 2);
+  const top = deck.slice(0, cutIndex);
+  const bottom = deck.slice(cutIndex);
+
+  const result: number[] = new Array(n);
+  const sourceSequence: PileSource[] = new Array(n);
+
+  let i = 0;
+  let j = 0;
+  for (let slot = 0; slot < n; slot++) {
+    if (slot % 2 === 0) {
+      result[slot] = top[i++];
+      sourceSequence[slot] = "top";
+    } else {
+      result[slot] = bottom[j++];
+      sourceSequence[slot] = "bottom";
+    }
+  }
+
+  return { kind: "riffle", result, cutIndex, sourceSequence };
+}

@@ -22,6 +22,7 @@ const ALL_CONTROL_IDS = [
   "shuffleFive",
   "cut",
   "overhand",
+  "perfectShuffle",
   "reset",
 ];
 
@@ -55,6 +56,9 @@ export function mountApp(root: HTMLElement): void {
   let colorScheme = getColorScheme(DEFAULT_COLOR_SCHEME);
   let trackedCard = DEFAULT_TRACKED_CARD;
   let playTimer: ReturnType<typeof setInterval> | null = null;
+  // Perfect Shuffle stays hidden in Sandbox until the Explainer has walked
+  // the user through what it means — otherwise it's an unexplained button.
+  let perfectShuffleUnlocked = false;
 
   function ctx(): VizContext {
     return { experiment, colorScheme, trackedCard };
@@ -151,6 +155,21 @@ export function mountApp(root: HTMLElement): void {
     }
   }
 
+  async function performPerfectShuffle(): Promise<void> {
+    const animate = experiment.numDecks === 1;
+    setControlsEnabled(false);
+    try {
+      experiment.performPerfectShuffle();
+      await activeViz.render(ctx(), { animate });
+    } finally {
+      setControlsEnabled(true);
+    }
+  }
+
+  function unlockPerfectShuffle(): void {
+    perfectShuffleUnlocked = true;
+  }
+
   const controls = new ControlsPanel(
     controlsPanel,
     {
@@ -181,9 +200,13 @@ export function mountApp(root: HTMLElement): void {
       onOverhand: () => {
         void performOperation("overhand");
       },
+      onPerfectShuffle: () => {
+        void performPerfectShuffle();
+      },
       onReset: doReset,
     },
   );
+  controls.get("perfectShuffle").setVisible(perfectShuffleUnlocked);
 
   const lessonHost: LessonHost = {
     controls,
@@ -195,6 +218,7 @@ export function mountApp(root: HTMLElement): void {
     runOperation: performOperation,
     reset: doReset,
     getShuffleCount: () => experiment.shuffleCount,
+    unlockPerfectShuffle,
   };
 
   const lesson = new LessonController(lessonPanel, lessonHost, () => setMode("sandbox"));
@@ -206,6 +230,9 @@ export function mountApp(root: HTMLElement): void {
       void lesson.start();
     } else {
       lesson.stop();
+      // Lesson steps freely show/hide Perfect Shuffle while active — re-sync
+      // Sandbox's copy against the unlock flag now that it's in charge again.
+      controls.get("perfectShuffle").setVisible(perfectShuffleUnlocked);
     }
   }
 

@@ -16,6 +16,8 @@ export interface LessonHost {
   runOperation(kind: OperationKind, times?: number): Promise<void>;
   reset(): void;
   getShuffleCount(): number;
+  /** Marks Perfect Shuffle as explained, so Sandbox starts showing it too. */
+  unlockPerfectShuffle(): void;
 }
 
 interface LessonStep {
@@ -34,11 +36,12 @@ const ALL_CONTROL_IDS = [
   "shuffleFive",
   "cut",
   "overhand",
+  "perfectShuffle",
   "reset",
 ];
 
 /** Controls this story doesn't need by default — kept hidden unless a step specifically re-shows them. */
-const ADVANCED_CONTROL_IDS = ["numDecks", "trackedCard", "cut", "overhand", "shuffleFive"];
+const ADVANCED_CONTROL_IDS = ["numDecks", "trackedCard", "cut", "overhand", "shuffleFive", "perfectShuffle"];
 
 const DEMO_SHUFFLE_COUNT = 4;
 
@@ -109,7 +112,7 @@ const STEPS: LessonStep[] = [
   },
   {
     title: "Random enough?",
-    body: "Four shuffles in, and it looks pretty scrambled, right? Mathematician Persi Diaconis showed a 52-card deck needs about seven good riffles before it's genuinely close to random — but there are still exploitable traces of the original order hiding in here after just four. Let's prove it.",
+    body: "Four shuffles in, and it looks pretty scrambled, right? But after four, there are still exploitable traces of the original order hiding in here — mathematician Persi Diaconis showed a 52-card deck needs about seven good riffles before it's genuinely close to random. Let's prove it.",
     onEnter: async (host) => {
       resetControlChrome(host.controls);
       hideAdvancedControls(host.controls);
@@ -222,13 +225,18 @@ const STEPS: LessonStep[] = [
   },
   {
     title: "Can you over-shuffle?",
-    body: 'Two shuffling myths, sort of true. First: that you can shuffle so much you land back exactly where you started. That\'s real — but only if you perform the exact same perfect interleave every single time, splitting the deck into two exactly even halves that alternate card for card, over and over. No human hand does that by accident, which is exactly why automatic shuffling machines can be a problem: they repeat a much more precise motion, so they need extra randomization built in to avoid it.\n\nSecond: that you can shuffle "too much." That\'s not really about randomness — real games build their own structure into a deck as it\'s played and discarded, hand after hand. What people are sensing as "too shuffled" is usually just that leftover structure getting erased, which is exactly what shuffling is supposed to do.',
+    body: 'Two shuffling myths, sort of true. First: that you can shuffle so much you land back exactly where you started. That\'s real — but only if you perform the exact same perfect interleave every single time, splitting the deck into two exactly even halves that alternate card for card, over and over. No human hand does that by accident, which is exactly why automatic shuffling machines can be a problem: they repeat a much more precise motion, so they need extra randomization built in to avoid it. Try it yourself: hit the highlighted Perfect Shuffle button eight times and watch a 52-card deck return to its original order.\n\nSecond: that you can shuffle "too much." That\'s not really about randomness — real games build their own structure into a deck as it\'s played and discarded, hand after hand. What people are sensing as "too shuffled" is usually just that leftover structure getting erased, which is exactly what shuffling is supposed to do.',
     onEnter: (host) => {
       resetControlChrome(host.controls);
       hideAdvancedControls(host.controls);
       host.controls.get("deckSize").setEnabled(false);
       host.setNumDecks(1);
       host.reset();
+      host.unlockPerfectShuffle();
+      showControls(host.controls, ["perfectShuffle"]);
+      host.controls.get("perfectShuffle").setHighlighted(true);
+      host.controls.get("shuffleOnce").setVisible(false);
+      host.controls.get("reset").setVisible(false);
     },
   },
   {
