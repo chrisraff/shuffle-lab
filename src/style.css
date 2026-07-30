@@ -160,6 +160,10 @@ body {
   padding: 0.5rem 1.2rem;
 }
 
+.lesson-nav .btn.is-highlighted {
+  animation: highlight-glow 2s ease-in-out infinite;
+}
+
 /* Controls */
 
 .controls-form {
@@ -270,6 +274,17 @@ body {
 .control-field.is-highlighted {
   background: var(--accent-dim);
   box-shadow: 0 0 0 1px var(--accent);
+  animation: highlight-glow 2s ease-in-out infinite;
+}
+
+@keyframes highlight-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+  50% {
+    box-shadow: 0 0 12px 3px var(--accent);
+  }
 }
 
 .segmented-group {

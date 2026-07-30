@@ -23,6 +23,8 @@ export interface LessonHost {
 interface LessonStep {
   title: string;
   body: string;
+  /** Draws attention to the Next button itself — for steps with nothing else to interact with. */
+  highlightNext?: boolean;
   onEnter?(host: LessonHost): void | Promise<void>;
 }
 
@@ -79,6 +81,7 @@ const STEPS: LessonStep[] = [
   {
     title: "Welcome",
     body: "A riffle shuffle cuts a deck in two and interleaves the halves back together. Every card here is colored by where it started, so watching the colors scatter is watching the deck randomize — in the Column History view below.",
+    highlightNext: true,
     onEnter: (host) => {
       host.setViz("column-history");
       host.setColorScheme("sunset");
@@ -309,7 +312,7 @@ export class LessonController {
       ${paragraphs}
       <div class="lesson-nav">
         <button type="button" class="btn" data-action="back" ${isFirst ? "disabled" : ""}>Back</button>
-        <button type="button" class="btn btn-primary" data-action="next">${isLast ? "Finish" : "Next"}</button>
+        <button type="button" class="btn btn-primary${step.highlightNext ? " is-highlighted" : ""}" data-action="next">${isLast ? "Finish" : "Next"}</button>
       </div>
     `;
 
