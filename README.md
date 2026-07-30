@@ -57,3 +57,12 @@ src/
 ```
 
 The `Experiment` is the single source of truth for operation history; visualizations only read from it, so switching between them (or between Sandbox and Explainer) never discards data. Adding a new visualization means implementing `Visualization` in `viz/` and adding one line to `viz/registry.ts`. Adding a new shuffle-like operation means adding a case to `core/operations.ts` (or `core/shuffle.ts`), handling it in `Experiment#performOne`, adding an icon in `viz/icons.ts`, and wiring a button in `ui/controls.ts`.
+
+## Deployment
+
+Pushes to `main` build and deploy to GitHub Pages automatically via `.github/workflows/deploy.yml` (using `actions/deploy-pages`, no `gh-pages` branch involved). Two one-time repo settings are required for that workflow to actually publish anything:
+
+1. **Settings → Pages → Build and deployment → Source → "GitHub Actions"**.
+2. Make sure `main` has this workflow on it (merge it in if it's only on a feature branch).
+
+`vite.config.ts` sets `base` to `/shuffle-lab/` only when `GITHUB_ACTIONS` is set (i.e. only in CI), so local `npm run dev`/`build`/`preview` are unaffected and still serve from `/`. The site ends up at `https://<owner>.github.io/shuffle-lab/`.
