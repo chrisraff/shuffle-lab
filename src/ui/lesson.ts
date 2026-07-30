@@ -233,7 +233,7 @@ const STEPS: LessonStep[] = [
   },
 ];
 
-/** Drives the Story mode: linear steps that can hide, disable, or highlight any control. */
+/** Drives the Explainer mode: linear steps that can hide, disable, or highlight any control. */
 export class LessonController {
   private stepIndex = 0;
   private readonly panelEl: HTMLElement;

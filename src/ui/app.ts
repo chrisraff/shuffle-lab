@@ -36,7 +36,7 @@ export function mountApp(root: HTMLElement): void {
       </div>
       <div class="mode-tabs">
         <button class="active" data-mode="sandbox">Sandbox</button>
-        <button data-mode="lesson">Story</button>
+        <button data-mode="lesson">Explainer</button>
       </div>
     </header>
     <div class="panel lesson-panel is-hidden" id="lesson-panel"></div>

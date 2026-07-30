@@ -27,7 +27,7 @@ npm run build    # type-check and produce a production build
   - **Column History** (1 deck): a grid where column *k* is the deck after *k* operations. A shuffle animates — a copy of the last column slides two columns over and splits into its two riffle piles (top pile up, bottom pile down), then cards drop back into the new column (one column over) in the exact order the simulation drew them. This view intentionally only ever shows one deck: averaging many decks' colors together converges to a flat blend almost immediately, well before the underlying permutations are actually close to random, which is misleading rather than informative.
   - **Follow One Card** (500 or 2000 decks): drag the **Track card #** slider (or hit **▶** to auto-cycle through every card) to aggregate every trial into a per-operation-count picture of where that card ends up. Each cell is that card's color, alpha-blended over black by the fraction of trials it landed there (gamma-corrected so faint probabilities stay visible). At 0 shuffles it's a solid spike; watch it spread and fade as the operation count grows.
 
-### Story mode
+### Explainer mode
 
 A 12-step guided walkthrough (`ui/lesson.ts`) that runs the sandbox itself as a narrative: it shuffles the deck by hand, fast-forwards to show 4 riffles still leaving exploitable traces, jumps to 2000 decks to prove it with Follow One Card, then does the same exposé for the overhand shuffle and the cut (including running an interleaved riffle/cut sequence, and directly addressing why every cut in a run shares one cut point), and closes with two shuffling myths. Any step can hide, disable, or highlight any control by id (`ControlsPanel#get(id).setVisible/setEnabled/setHighlighted`) and run any operation in bulk via `LessonHost#runOperation(kind, times)`, so further chapters can be added without touching the sandbox code.
 
@@ -52,8 +52,8 @@ src/
     followCardViz.ts
   ui/
     controls.ts        sandbox control panel, exposes each control by id
-    lesson.ts           Story mode steps + LessonController
+    lesson.ts           Explainer mode steps + LessonController
     app.ts              wires everything together
 ```
 
-The `Experiment` is the single source of truth for operation history; visualizations only read from it, so switching between them (or between Sandbox and Story) never discards data. Adding a new visualization means implementing `Visualization` in `viz/` and adding one line to `viz/registry.ts`. Adding a new shuffle-like operation means adding a case to `core/operations.ts` (or `core/shuffle.ts`), handling it in `Experiment#performOne`, adding an icon in `viz/icons.ts`, and wiring a button in `ui/controls.ts`.
+The `Experiment` is the single source of truth for operation history; visualizations only read from it, so switching between them (or between Sandbox and Explainer) never discards data. Adding a new visualization means implementing `Visualization` in `viz/` and adding one line to `viz/registry.ts`. Adding a new shuffle-like operation means adding a case to `core/operations.ts` (or `core/shuffle.ts`), handling it in `Experiment#performOne`, adding an icon in `viz/icons.ts`, and wiring a button in `ui/controls.ts`.
