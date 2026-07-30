@@ -163,7 +163,14 @@ export function mountApp(root: HTMLElement): void {
       onDeckSizeChange: setDeckSize,
       onNumDecksChange: setNumDecks,
       onColorSchemeChange: setColorScheme,
-      onTrackedCardChange: setTrackedCard,
+      onTrackedCardChange: (card) => {
+        // Only reached via genuine user input on the slider — the play
+        // timer advances the tracked card by calling setTrackedCard
+        // directly, bypassing this callback — so stopping playback here
+        // only fires when the user actually grabs the slider themselves.
+        stopPlay();
+        setTrackedCard(card);
+      },
       onTrackedCardPlayToggle: togglePlay,
       onShuffle: (times) => {
         void performOperation("riffle", times);
