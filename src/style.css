@@ -98,15 +98,6 @@ body {
     display: none;
   }
 
-  .lesson-panel {
-    display: flex;
-    flex-direction: column;
-    max-height: 20dvh;
-    min-height: 0;
-    margin: 0.5rem 0.75rem 0;
-    padding: 0.6rem 0.75rem;
-  }
-
   .lesson-scroll {
     overflow-y: auto;
     flex: 1;
@@ -439,6 +430,19 @@ body {
 }
 
 @media (max-width: 760px) {
+  /* Positioned in this second mobile block, after the unconditional
+     .lesson-panel{margin:...} rule in the Guided lesson section above --
+     an earlier attempt placed this in the first mobile block (before that
+     base rule) and silently lost the cascade on every property they share. */
+  .lesson-panel {
+    display: flex;
+    flex-direction: column;
+    max-height: 20dvh;
+    min-height: 0;
+    margin: 0.5rem 0.75rem 0;
+    padding: 0.6rem 0.75rem;
+  }
+
   .settings-dialog {
     display: none;
     position: fixed;
