@@ -28,6 +28,12 @@ const ALL_CONTROL_IDS = [
 
 type Mode = "sandbox" | "lesson";
 
+/** Rendered twice: inline in the (desktop) header, and injected into the settings dialog for mobile — both copies are wired by the same `setMode` loop below, so they can't drift out of sync. */
+const MODE_TABS_HTML = `
+  <button class="active" data-mode="sandbox">Sandbox</button>
+  <button data-mode="lesson">Explainer</button>
+`;
+
 const STORAGE_KEY_EXPLAINER_COMPLETED = "shuffle-lab:explainer-completed";
 const STORAGE_KEY_LAST_MODE = "shuffle-lab:last-mode";
 
@@ -78,10 +84,7 @@ export function mountApp(root: HTMLElement): void {
         <h1>Shuffle Lab</h1>
         <div class="subtitle">Visualizing how riffle shuffles randomize a deck</div>
       </div>
-      <div class="mode-tabs">
-        <button class="active" data-mode="sandbox">Sandbox</button>
-        <button data-mode="lesson">Explainer</button>
-      </div>
+      <div class="mode-tabs">${MODE_TABS_HTML}</div>
     </header>
     <div class="panel lesson-panel is-hidden" id="lesson-panel"></div>
     <div class="app-body">
@@ -93,7 +96,6 @@ export function mountApp(root: HTMLElement): void {
   const lessonPanel = root.querySelector<HTMLElement>("#lesson-panel")!;
   const controlsPanel = root.querySelector<HTMLElement>("#controls-panel")!;
   const vizPanel = root.querySelector<HTMLElement>("#viz-panel")!;
-  const modeButtons = root.querySelectorAll<HTMLButtonElement>(".mode-tabs button");
 
   const experiment = new Experiment({ deckSize: DEFAULT_DECK_SIZE, numDecks: DEFAULT_NUM_DECKS });
   let colorScheme = getColorScheme(DEFAULT_COLOR_SCHEME);
@@ -257,6 +259,12 @@ export function mountApp(root: HTMLElement): void {
   );
   controls.get("perfectShuffle").setVisible(perfectShuffleUnlocked);
 
+  controls.getModeTabsSlot().innerHTML = `<div class="mode-tabs">${MODE_TABS_HTML}</div>`;
+  const modeButtons = root.querySelectorAll<HTMLButtonElement>(".mode-tabs button");
+  for (const btn of modeButtons) {
+    btn.addEventListener("click", () => setMode(btn.dataset.mode as Mode));
+  }
+
   const lessonHost: LessonHost = {
     controls,
     setDeckSize,
@@ -285,10 +293,6 @@ export function mountApp(root: HTMLElement): void {
       controls.get("perfectShuffle").setVisible(perfectShuffleUnlocked);
     }
     saveLastMode(mode);
-  }
-
-  for (const btn of modeButtons) {
-    btn.addEventListener("click", () => setMode(btn.dataset.mode as Mode));
   }
 
   setMode(resolveInitialMode());

@@ -90,11 +90,43 @@ body {
 
 @media (max-width: 760px) {
   .app-header {
-    flex-wrap: wrap;
+    display: none;
+  }
+
+  .lesson-panel {
+    display: flex;
+    flex-direction: column;
+    max-height: 20dvh;
+    min-height: 0;
+    margin: 0.5rem 0.75rem 0;
+  }
+
+  .lesson-scroll {
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .lesson-nav {
+    flex: none;
+    margin-top: 0.4rem;
+    padding-top: 0.4rem;
+    border-top: 1px solid var(--panel-border);
   }
 
   .app-body {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #viz-panel {
+    order: 1;
+    flex: 1;
+  }
+
+  #controls-panel {
+    order: 2;
+    flex: none;
   }
 }
 
@@ -212,6 +244,49 @@ body {
 
 .control-button-field {
   margin: -0.4rem;
+}
+
+/* Settings dialog + status bar. Desktop: both flattened/hidden so the
+   sidebar renders exactly as a flat form. Mobile: real bottom-sheet dialog
+   opened from a compact status bar (see the mobile block near the end of
+   this section). */
+
+.settings-dialog {
+  display: contents;
+}
+
+.settings-dialog-header,
+.settings-mode-tabs {
+  display: none;
+}
+
+.status-bar-row2 {
+  display: contents;
+}
+
+.status-bar {
+  display: none;
+}
+
+.status-chip,
+.hamburger-btn {
+  border: 1px solid var(--panel-border);
+  background: var(--bg);
+  color: var(--text);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+.status-chip:hover,
+.hamburger-btn:hover {
+  filter: brightness(1.2);
+}
+
+.status-chip.is-highlighted,
+.hamburger-btn.is-highlighted {
+  box-shadow: 0 0 0 1px var(--accent);
+  animation: highlight-glow 2s ease-in-out infinite;
 }
 
 .btn {
@@ -354,6 +429,118 @@ body {
   background: var(--accent-dim);
   border-color: var(--accent);
   color: var(--accent);
+}
+
+@media (max-width: 760px) {
+  .settings-dialog {
+    display: none;
+    position: fixed;
+    inset: auto 0 0 0;
+    margin: 0;
+    width: 100%;
+    max-height: 80dvh;
+    background: var(--panel);
+    border: none;
+    border-top: 1px solid var(--panel-border);
+    border-radius: 16px 16px 0 0;
+    padding: 1rem 1.2rem calc(1rem + env(safe-area-inset-bottom));
+    color: var(--text);
+  }
+
+  .settings-dialog[open] {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    overflow-y: auto;
+  }
+
+  .settings-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.5);
+  }
+
+  .settings-dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .settings-dialog-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+
+  .settings-dialog-close {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 1rem;
+    cursor: pointer;
+  }
+
+  .settings-mode-tabs {
+    display: block;
+    border-top: 1px solid var(--panel-border);
+    padding-top: 0.9rem;
+  }
+
+  .settings-mode-tabs .mode-tabs {
+    width: 100%;
+  }
+
+  .settings-mode-tabs .mode-tabs button {
+    flex: 1;
+  }
+
+  .status-bar-row2 {
+    display: flex;
+    order: 2;
+  }
+
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    order: 1;
+  }
+
+  .status-chip {
+    flex: 1;
+    min-height: 44px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    text-align: left;
+  }
+
+  .hamburger-btn {
+    flex: none;
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .hamburger-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .control-actions {
+    order: 3;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .btn {
+    min-height: 44px;
+    padding: 0.65rem 0.5rem;
+  }
 }
 
 /* Visualizations */
