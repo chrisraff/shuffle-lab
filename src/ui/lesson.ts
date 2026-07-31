@@ -18,6 +18,8 @@ export interface LessonHost {
   getShuffleCount(): number;
   /** Marks Perfect Shuffle as explained, so Sandbox starts showing it too. */
   unlockPerfectShuffle(): void;
+  /** Persists that the user has finished the Explainer, so future visits remember their last-used mode instead of always opening here. */
+  markExplainerCompleted(): void;
 }
 
 interface LessonStep {
@@ -236,6 +238,7 @@ const STEPS: LessonStep[] = [
       host.setNumDecks(1);
       host.reset();
       host.unlockPerfectShuffle();
+      host.markExplainerCompleted();
       showControls(host.controls, ["perfectShuffle"]);
       host.controls.get("perfectShuffle").setHighlighted(true);
       host.controls.get("shuffleOnce").setVisible(false);

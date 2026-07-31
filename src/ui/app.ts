@@ -28,6 +28,49 @@ const ALL_CONTROL_IDS = [
 
 type Mode = "sandbox" | "lesson";
 
+const STORAGE_KEY_EXPLAINER_COMPLETED = "shuffle-lab:explainer-completed";
+const STORAGE_KEY_LAST_MODE = "shuffle-lab:last-mode";
+
+function readStoredExplainerCompleted(): boolean {
+  try {
+    return localStorage.getItem(STORAGE_KEY_EXPLAINER_COMPLETED) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function readStoredLastMode(): Mode | null {
+  try {
+    const value = localStorage.getItem(STORAGE_KEY_LAST_MODE);
+    return value === "sandbox" || value === "lesson" ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveExplainerCompleted(): void {
+  try {
+    localStorage.setItem(STORAGE_KEY_EXPLAINER_COMPLETED, "true");
+  } catch {
+    // localStorage may be unavailable (privacy mode, disabled) — the
+    // milestone just won't be remembered next visit.
+  }
+}
+
+function saveLastMode(mode: Mode): void {
+  try {
+    localStorage.setItem(STORAGE_KEY_LAST_MODE, mode);
+  } catch {
+    // Same as above — startup mode just won't be remembered.
+  }
+}
+
+/** First-time (or not-yet-finished) visitors always land on the Explainer; once they've finished it, we resume whichever mode they left the app in. */
+function resolveInitialMode(): Mode {
+  if (!readStoredExplainerCompleted()) return "lesson";
+  return readStoredLastMode() ?? "lesson";
+}
+
 export function mountApp(root: HTMLElement): void {
   root.innerHTML = `
     <header class="app-header">
@@ -58,7 +101,9 @@ export function mountApp(root: HTMLElement): void {
   let playTimer: ReturnType<typeof setInterval> | null = null;
   // Perfect Shuffle stays hidden in Sandbox until the Explainer has walked
   // the user through what it means — otherwise it's an unexplained button.
-  let perfectShuffleUnlocked = false;
+  // Once unlocked, it stays that way across visits (same milestone that
+  // unlocks the remembered startup mode below).
+  let perfectShuffleUnlocked = readStoredExplainerCompleted();
 
   function ctx(): VizContext {
     return { experiment, colorScheme, trackedCard };
@@ -170,6 +215,10 @@ export function mountApp(root: HTMLElement): void {
     perfectShuffleUnlocked = true;
   }
 
+  function markExplainerCompleted(): void {
+    saveExplainerCompleted();
+  }
+
   const controls = new ControlsPanel(
     controlsPanel,
     {
@@ -219,6 +268,7 @@ export function mountApp(root: HTMLElement): void {
     reset: doReset,
     getShuffleCount: () => experiment.shuffleCount,
     unlockPerfectShuffle,
+    markExplainerCompleted,
   };
 
   const lesson = new LessonController(lessonPanel, lessonHost, () => setMode("sandbox"));
@@ -234,9 +284,12 @@ export function mountApp(root: HTMLElement): void {
       // Sandbox's copy against the unlock flag now that it's in charge again.
       controls.get("perfectShuffle").setVisible(perfectShuffleUnlocked);
     }
+    saveLastMode(mode);
   }
 
   for (const btn of modeButtons) {
     btn.addEventListener("click", () => setMode(btn.dataset.mode as Mode));
   }
+
+  setMode(resolveInitialMode());
 }
