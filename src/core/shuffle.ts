@@ -11,6 +11,14 @@ export interface ShuffleStep {
   cutIndex: number;
   /** For each card in `result`, which pile it was drawn from, in order. */
   sourceSequence: PileSource[];
+  /**
+   * True for a deterministic `perfectShuffle`, false for a randomized
+   * `riffleShuffle`. Both share `kind: "riffle"` (same icon, same
+   * animation), so this is what lets a replay — e.g. `Experiment`
+   * backfilling a new trial — tell which one actually happened at a given
+   * step instead of always re-randomizing it.
+   */
+  perfect: boolean;
 }
 
 /** Default bias exponent — 1 reproduces the classic GSR riffle-shuffle model. */
@@ -72,7 +80,7 @@ export function riffleShuffle(
     }
   }
 
-  return { kind: "riffle", result, cutIndex, sourceSequence };
+  return { kind: "riffle", result, cutIndex, sourceSequence, perfect: false };
 }
 
 /**
@@ -104,5 +112,5 @@ export function perfectShuffle(deck: readonly number[]): ShuffleStep {
     }
   }
 
-  return { kind: "riffle", result, cutIndex, sourceSequence };
+  return { kind: "riffle", result, cutIndex, sourceSequence, perfect: true };
 }

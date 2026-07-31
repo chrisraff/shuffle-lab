@@ -63,6 +63,21 @@ describe("Experiment", () => {
     }
   });
 
+  it("backfills perfect shuffles deterministically instead of as random riffles", () => {
+    const exp = new Experiment({ deckSize: 12, numDecks: 1 });
+    exp.performPerfectShuffle();
+    exp.performPerfectShuffle();
+    exp.setNumDecks(6);
+    expect(exp.trials).toHaveLength(6);
+    const first = exp.trials[0].history[2];
+    for (const trial of exp.trials) {
+      expect(trial.steps.map((s) => s.kind === "riffle" && s.perfect)).toEqual([true, true]);
+      // Deterministic, so every backfilled trial lands on the exact same
+      // order as the original — unlike a random riffle, which wouldn't.
+      expect(trial.history[2]).toEqual(first);
+    }
+  });
+
   it("shrinking trials just drops trials without touching the rest", () => {
     const exp = new Experiment({ deckSize: 10, numDecks: 4 });
     exp.perform("riffle");

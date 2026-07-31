@@ -70,8 +70,9 @@ export class Experiment extends Emitter {
    * Changes the trial count without discarding history. Growing replays
    * the existing operation sequence onto each new trial — cuts reuse the
    * exact cut point already shared by the other trials at that step (the
-   * same "one shared draw" rule `perform` uses), while riffles and
-   * overhand shuffles draw fresh per-trial randomness — so every trial
+   * same "one shared draw" rule `perform` uses), perfect shuffles replay
+   * deterministically (there's nothing to randomize), and ordinary riffles
+   * and overhand shuffles draw fresh per-trial randomness — so every trial
    * ends up at the same shuffle count. Shrinking just drops trials off
    * the end; nothing is recomputed.
    */
@@ -94,8 +95,13 @@ export class Experiment extends Emitter {
     const trial: Trial = { history: [createIdentityDeck(this.deckSize)], steps: [] };
     for (const refStep of referenceSteps) {
       const current = trial.history[trial.history.length - 1];
-      const cutIndex = refStep.kind === "cut" ? refStep.cutIndex : undefined;
-      const step = this.performOne(refStep.kind, current, cutIndex);
+      let step: Step;
+      if (refStep.kind === "riffle" && refStep.perfect) {
+        step = perfectShuffle(current);
+      } else {
+        const cutIndex = refStep.kind === "cut" ? refStep.cutIndex : undefined;
+        step = this.performOne(refStep.kind, current, cutIndex);
+      }
       trial.steps.push(step);
       trial.history.push(step.result);
     }
