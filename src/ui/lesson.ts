@@ -138,6 +138,11 @@ const STEPS: LessonStep[] = [
       host.controls.get("deckSize").setEnabled(false);
       disableAllControls(host.controls);
       host.setNumDecks(2000);
+      // The previous step only tops up shuffles to reach four — if the user
+      // clicked Shuffle extra times back on "Watch it shuffle", it can leave
+      // more than four on the board. Discard whatever's there and shuffle
+      // fresh so this demo always lands on exactly four, not "four or more."
+      host.reset();
       await host.runOperation("riffle", DEMO_SHUFFLE_COUNT);
       // runOperation re-enables everything when it resolves — lock back down
       // before selectively re-enabling just what this step needs.
@@ -200,7 +205,7 @@ const STEPS: LessonStep[] = [
   },
   {
     title: "Cuts don't help much",
-    body: "Let's repeat those four riffles, but slip in a cut between each one — a common habit at the table. Compare this to what you saw two steps ago: cutting between riffles doesn't add much randomness on top of what the riffles were already doing.",
+    body: "Let's repeat those four riffles, but slip in a cut between each one — a common habit at the table. Compare this to what you saw two steps ago: cutting between riffles doesn't add much randomness on top of what the riffles were already doing. (Cuts are normalized across trials — every deck gets cut at the same point — so we're measuring what shuffling does, not how many different ways there are to cut a deck.)",
     onEnter: async (host) => {
       resetControlChrome(host.controls);
       hideAdvancedControls(host.controls);
@@ -220,7 +225,7 @@ const STEPS: LessonStep[] = [
   },
   {
     title: "A fair question",
-    body: 'You might notice every cut here sends the tracked card to exactly one new spot, never smeared across many — unlike a riffle. That\'s intentional: a cut has no shuffling of its own, nothing card-by-card happens during it. Where every card ends up is decided entirely by where you cut. If each of the 2000 decks were cut at a different random spot, we\'d only be measuring "how many places can you cut a deck" — not "how much does cutting actually mix the cards." So every deck here gets cut at the exact same point, as if you cut all 2000 with one identical motion.',
+    body: "You might notice every cut sends the tracked card to exactly one new spot, never smeared across many, the way a riffle does. That's because a cut has no shuffling of its own — nothing card-by-card happens during it — so it can only rotate the deck, not mix it.",
     onEnter: (host) => {
       resetControlChrome(host.controls);
       hideAdvancedControls(host.controls);
