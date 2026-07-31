@@ -1,0 +1,5 @@
+/* Embed-only: lets a scene hide the visualization's title/description/note text via ?showText=0, keeping just the grid. */
+.hide-labels .viz-header,
+.hide-labels .viz-note {
+  display: none;
+}

@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { defineConfig } from "vite";
 
 // GitHub Pages project sites are served from /<repo-name>/, not /, so
@@ -6,4 +7,12 @@ import { defineConfig } from "vite";
 // GitHub Actions runner automatically.
 export default defineConfig({
   base: process.env.GITHUB_ACTIONS ? "/shuffle-lab/" : "/",
+  build: {
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, "index.html"),
+        embed: resolve(__dirname, "embed.html"),
+      },
+    },
+  },
 });

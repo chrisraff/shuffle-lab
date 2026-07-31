@@ -18,8 +18,19 @@ function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Waits two animation frames, not one. Every animate* method below inserts
+ * a batch of fresh `.anim-card` elements at a starting position, then (after
+ * this wait) sets a `transition` and moves them — relying on the browser
+ * having actually committed that starting position first, or the
+ * transition has nothing to animate FROM and the cards just snap straight
+ * to their end position. A single `requestAnimationFrame` can still fire
+ * before that commit, especially right after inserting ~50+ new elements
+ * at once; two reliably forces it (the standard fix for this class of
+ * CSS-transition flakiness).
+ */
 function nextFrame(): Promise<void> {
-  return new Promise((resolve) => requestAnimationFrame(() => resolve()));
+  return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
 }
 
 /**
