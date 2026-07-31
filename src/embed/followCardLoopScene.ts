@@ -2,6 +2,7 @@ import { getColorScheme } from "../core/colors";
 import { Experiment } from "../core/experiment";
 import { createVisualization } from "../viz/registry";
 import type { VizContext, Visualization } from "../viz/types";
+import { fitToHeight } from "./fitToHeight";
 import type { FollowCardLoopConfig } from "./params";
 
 /**
@@ -21,6 +22,10 @@ export function runFollowCardLoopScene(container: HTMLElement, cfg: FollowCardLo
   const activeViz: Visualization = createVisualization("follow-card");
   activeViz.mount(container, ctx());
   container.classList.toggle("hide-labels", !cfg.showText);
+  // Grid dimensions (deckSize, shuffleCount) never change after mount, so
+  // height is stable for the whole scene — a one-time fit (plus resize) is
+  // enough, no need to refit on every sweep tick.
+  fitToHeight(container);
 
   let direction = 1;
   setInterval(() => {

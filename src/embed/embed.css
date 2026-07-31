@@ -3,3 +3,37 @@
 .hide-labels .viz-note {
   display: none;
 }
+
+/* Embed pages are meant to fill exactly one iframe, not scroll. #embed-root
+   (a .panel — background/border/padding included) always spans the full
+   iframe. #embed-stage is the actual visualization inside it — scaled by
+   fitToHeight to match the panel's available height exactly (accounting
+   for its padding, not just the raw viewport) while keeping its natural
+   aspect ratio, sitting flush top-left — inset by the panel's own padding
+   — rather than centered or stretched to fill whatever width is left
+   over. */
+html,
+body {
+  overflow: hidden;
+}
+
+#embed-root {
+  width: 100%;
+  height: 100%;
+}
+
+#embed-stage {
+  transform-origin: top left;
+}
+
+/* The sandbox app relies on `.column-history-trials`/`.follow-card-scroll`
+   scrolling horizontally when a grid is wider than the viz panel. Embed
+   pages don't scroll — the whole grid IS the thing being shown — so on a
+   narrow-and-short iframe, that same overflow-x:auto instead silently
+   clips the right edge (scrollLeft stays 0, nothing auto-scrolls it into
+   view). Let these size to their natural content width instead; html/body's
+   own overflow:hidden above is still the real boundary. */
+#embed-stage .column-history-trials,
+#embed-stage .follow-card-scroll {
+  overflow-x: visible;
+}

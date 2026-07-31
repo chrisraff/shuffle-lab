@@ -7,6 +7,11 @@ import { defineConfig } from "vite";
 // GitHub Actions runner automatically.
 export default defineConfig({
   base: process.env.GITHUB_ACTIONS ? "/shuffle-lab/" : "/",
+  // Two real HTML entries (index.html, embed.html), not a single-page app —
+  // disable Vite's SPA fallback so an unmatched path 404s in dev instead of
+  // silently serving index.html, matching how GitHub Pages (a plain static
+  // host) actually behaves in production.
+  appType: "mpa",
   build: {
     rollupOptions: {
       input: {

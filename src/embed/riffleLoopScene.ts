@@ -2,6 +2,7 @@ import { getColorScheme } from "../core/colors";
 import { Experiment } from "../core/experiment";
 import { createVisualization } from "../viz/registry";
 import type { VizContext, Visualization } from "../viz/types";
+import { fitToHeight } from "./fitToHeight";
 import type { RiffleLoopConfig } from "./params";
 import { sleep } from "./params";
 
@@ -18,6 +19,10 @@ export function runRiffleLoopScene(container: HTMLElement, cfg: RiffleLoopConfig
   const activeViz: Visualization = createVisualization("column-history");
   activeViz.mount(container, ctx());
   container.classList.toggle("hide-labels", !cfg.showText);
+  // Height is stable for the whole scene (only width grows temporarily
+  // during the overshoot animation), so a one-time fit (plus resize) is
+  // enough — no need to refit every render.
+  fitToHeight(container);
 
   void (async () => {
     while (true) {
