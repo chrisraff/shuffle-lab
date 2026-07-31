@@ -89,6 +89,11 @@ body {
 }
 
 @media (max-width: 760px) {
+  #app {
+    height: 100dvh;
+    overflow: hidden;
+  }
+
   .app-header {
     display: none;
   }
