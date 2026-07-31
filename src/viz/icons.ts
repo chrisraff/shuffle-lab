@@ -1,6 +1,6 @@
 import type { OperationKind } from "../core/operations";
 
-const RIFFLE_SVG = `<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 3L8 8L2 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 3L8 8L14 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const RIFFLE_SVG = `<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 2L15 10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M1 6L15 14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M1 14L15 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity="0.6"/><path d="M1 10L15 2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity="0.6"/></svg>`;
 
 const CUT_SVG = `<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="4" cy="4" r="1.6" stroke="currentColor" stroke-width="1.3"/><circle cx="4" cy="12" r="1.6" stroke="currentColor" stroke-width="1.3"/><path d="M5.2 5.2L13 13M5.2 10.8L13 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>`;
 
