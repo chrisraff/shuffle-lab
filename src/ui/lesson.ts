@@ -316,13 +316,13 @@ export class LessonController {
 
     this.panelEl.innerHTML = `
       <div class="lesson-scroll">
-        <div class="lesson-progress">Step ${this.stepIndex + 1} of ${STEPS.length}</div>
         <h2 class="lesson-title">${step.title}</h2>
         ${paragraphs}
       </div>
       <div class="lesson-nav">
         <button type="button" class="btn" data-action="back" ${isFirst ? "disabled" : ""}>Back</button>
         <button type="button" class="btn btn-primary${step.highlightNext ? " is-highlighted" : ""}" data-action="next">${isLast ? "Finish" : "Next"}</button>
+        <div class="lesson-progress">Step ${this.stepIndex + 1} of ${STEPS.length}</div>
       </div>
     `;
 

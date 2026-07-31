@@ -104,6 +104,7 @@ body {
     max-height: 20dvh;
     min-height: 0;
     margin: 0.5rem 0.75rem 0;
+    padding: 0.6rem 0.75rem;
   }
 
   .lesson-scroll {
@@ -171,7 +172,7 @@ body {
   color: var(--text-dim);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  margin-bottom: 0.4rem;
+  margin-left: auto;
 }
 
 .lesson-title {
@@ -189,12 +190,13 @@ body {
 
 .lesson-nav {
   display: flex;
+  align-items: center;
   gap: 0.6rem;
 }
 
 .lesson-nav .btn {
   flex: none;
-  padding: 0.5rem 1.2rem;
+  padding: 0.4rem 0.9rem;
 }
 
 .lesson-nav .btn.is-highlighted {
