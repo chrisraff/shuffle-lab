@@ -451,6 +451,7 @@ body {
     inset: auto 0 0 0;
     margin: 0;
     width: 100%;
+    max-width: none;
     max-height: 80dvh;
     background: var(--panel);
     border: none;
