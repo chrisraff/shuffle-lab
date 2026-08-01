@@ -118,14 +118,18 @@ body {
   }
 
   #viz-panel {
-    order: 1;
     flex: 1;
     padding: 0.75rem;
+    padding-bottom: var(--controls-panel-height, 220px);
   }
 
   #controls-panel {
-    order: 2;
-    flex: none;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+    border-radius: 16px 16px 0 0;
   }
 }
 
@@ -511,7 +515,7 @@ body {
   }
 
   #controls-panel {
-    padding: 0.5rem 0.75rem;
+    padding: 0.5rem 0.75rem calc(0.5rem + env(safe-area-inset-bottom));
   }
 
   .controls-form {
