@@ -563,7 +563,7 @@ body {
     grid-template-columns: repeat(3, 1fr);
   }
 
-  .btn {
+  .control-actions .btn {
     min-height: 44px;
     padding: 0.65rem 0.5rem;
   }
