@@ -127,7 +127,16 @@ body {
   .app-body {
     display: flex;
     flex-direction: column;
-    padding: 0.5rem 0.75rem 0.75rem;
+    /* The unconditional rule above sets gap:1rem for the desktop grid's
+       sidebar/viz split -- match it here to the same 0.5rem that
+       .app-body's own padding-top puts between .lesson-panel and
+       #viz-panel, so the rhythm is consistent instead of a wider gap. */
+    gap: 0.5rem;
+    /* No bottom padding: #controls-panel (below) sits flush against the
+       real screen edge instead of leaving a wasted gap -- its own
+       safe-area-inset-bottom padding (see the second mobile block) already
+       keeps its content clear of the home indicator/gesture area. */
+    padding: 0.5rem 0.75rem 0;
     min-height: 0;
   }
 
@@ -208,7 +217,7 @@ body {
 
 .lesson-nav .btn {
   flex: none;
-  padding: 0.25rem 0.9rem;
+  padding: 0.4rem 0.9rem;
 }
 
 .lesson-nav .btn.is-highlighted {
@@ -462,6 +471,14 @@ body {
     min-height: 0;
     margin: 0.5rem 0.75rem 0;
     padding: 0.6rem 0.75rem;
+  }
+
+  /* Comes after the unconditional .lesson-nav .btn rule above for the same
+     cascade-order reason as .lesson-panel just above -- trims Back/Next
+     back down for mobile density without affecting desktop's standard
+     button height. */
+  .lesson-nav .btn {
+    padding: 0.25rem 0.9rem;
   }
 
   .settings-dialog {
