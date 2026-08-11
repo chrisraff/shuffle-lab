@@ -559,6 +559,14 @@ body {
     order: 2;
   }
 
+  /* .status-bar-row2 above switches from display:contents to a real (row)
+     flex container on mobile, so its one child (the Track Card field) no
+     longer inherits .controls-form's column-flex stretch and shrinks to
+     its own content width instead -- force it back to full width. */
+  .control-field {
+    width: 100%;
+  }
+
   .status-bar {
     display: flex;
     align-items: center;
