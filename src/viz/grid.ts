@@ -52,6 +52,29 @@ export function createGridCanvas(
   return { canvas, gfx, cellHeight };
 }
 
+/** Matches style.css's `@media (max-width: 760px)` breakpoint. */
+const MOBILE_BREAKPOINT_PX = 760;
+
+/**
+ * On mobile, uniformly scales `stage` (a `.deck-grid-wrap`/`.deck-grid-stage`
+ * holding a grid canvas + its icon row) so its natural height exactly fills
+ * `container`'s available height — shrinking a tall grid to fit a short
+ * viewport, or growing a short one to use the full height, so the panel
+ * never needs to scroll vertically. On wider viewports this is a no-op: the
+ * grid keeps its natural pixel size and the panel scrolls instead. Callers
+ * re-run this after every render, since the grid's natural size changes
+ * with deck size / shuffle count / trial count.
+ */
+export function fitStageToContainer(stage: HTMLElement, container: HTMLElement): void {
+  stage.style.transform = "none";
+  if (window.innerWidth > MOBILE_BREAKPOINT_PX) return;
+
+  const naturalHeight = stage.getBoundingClientRect().height;
+  const availableHeight = container.clientHeight;
+  if (naturalHeight <= 0 || availableHeight <= 0) return;
+  stage.style.transform = `scale(${availableHeight / naturalHeight})`;
+}
+
 export function fillCell(
   gfx: CanvasRenderingContext2D,
   col: number,

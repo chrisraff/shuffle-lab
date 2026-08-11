@@ -235,17 +235,6 @@ export class ControlsPanel {
     };
     syncDialogToViewport();
     mobileQuery.addEventListener("change", syncDialogToViewport);
-
-    // On mobile this panel is pinned via position:fixed rather than normal
-    // flow (see #controls-panel in style.css), so #viz-panel needs its own
-    // height reserved via padding-bottom -- publish the panel's live
-    // rendered height as a custom property rather than hardcoding a guess,
-    // so it stays correct as content changes (e.g. the Track Card row
-    // showing/hiding).
-    const syncControlsHeight = () => {
-      document.documentElement.style.setProperty("--controls-panel-height", `${container.offsetHeight}px`);
-    };
-    new ResizeObserver(syncControlsHeight).observe(container);
   }
 
   get(id: string): ControlHandle {

@@ -89,7 +89,20 @@ body {
 }
 
 @media (max-width: 760px) {
+  /* html/body get overflow:hidden as a backstop against any residual
+     page-level scroll/bounce. */
+  html,
+  body {
+    overflow: hidden;
+  }
+
   #app {
+    /* The unconditional rule above sets min-height:100vh for desktop, and
+       CSS renders the LARGER of height/min-height -- on Android, 100vh is
+       the "large" viewport (assumes no browser/system UI), so that
+       min-height would silently win over this height:100dvh (the real,
+       nav-bar-aware viewport) unless it's reset here. */
+    min-height: 0;
     height: 100dvh;
     overflow: hidden;
   }
@@ -115,20 +128,22 @@ body {
     display: flex;
     flex-direction: column;
     padding: 0.5rem 0.75rem 0.75rem;
+    min-height: 0;
   }
 
+  /* Back in normal flex flow (not position:fixed) -- #controls-panel comes
+     first in the DOM (it's the sidebar on desktop) but belongs visually
+     below the viz on mobile, hence the explicit order. */
   #viz-panel {
+    order: 1;
     flex: 1;
     padding: 0.75rem;
-    padding-bottom: var(--controls-panel-height, 220px);
+    min-height: 0;
   }
 
   #controls-panel {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 10;
+    order: 2;
+    flex: none;
     border-radius: 16px 16px 0 0;
   }
 }
@@ -589,6 +604,14 @@ body {
   margin-bottom: 0.75rem;
 }
 
+/* The Explainer already narrates what each grid shows in its own step text,
+   so the viz's own title/description/note would just repeat it — hide them
+   while a lesson is driving the viz panel, on both mobile and desktop. */
+#viz-panel.hide-viz-chrome .viz-header,
+#viz-panel.hide-viz-chrome .viz-note {
+  display: none;
+}
+
 .column-history-trials {
   display: flex;
   flex-direction: column;
@@ -599,11 +622,13 @@ body {
 
 .deck-grid-wrap {
   display: inline-block;
+  transform-origin: top left;
 }
 
 .deck-grid-stage {
   position: relative;
   display: inline-block;
+  transform-origin: top left;
   line-height: 0;
 }
 
@@ -644,4 +669,32 @@ body {
 .follow-card-scroll {
   overflow-x: auto;
   padding-bottom: 0.5rem;
+}
+
+@media (max-width: 760px) {
+  /* Third mobile block: has to come after the unconditional #viz-panel,
+     .column-history-trials, and .follow-card-scroll rules above (the same
+     cascade-order trap the .lesson-panel comment near the second mobile
+     block warns about) so these overrides actually win. Turns the panel
+     into a flex column and lets the grid's scroll wrapper claim exactly
+     the space left after the viz header/note (nothing, if lesson mode has
+     hidden them via .hide-viz-chrome) — fitStageToContainer then scales
+     the grid to fill that space instead of requiring a scroll to see it. */
+  #viz-panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .viz-header,
+  .viz-note {
+    flex: none;
+  }
+
+  .column-history-trials,
+  .follow-card-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: hidden;
+  }
 }

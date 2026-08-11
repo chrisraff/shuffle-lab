@@ -284,6 +284,11 @@ export function mountApp(root: HTMLElement): void {
   function setMode(mode: Mode): void {
     for (const btn of modeButtons) btn.classList.toggle("active", btn.dataset.mode === mode);
     lessonPanel.classList.toggle("is-hidden", mode !== "lesson");
+    // Showing/hiding the lesson panel and viz header/note changes how much
+    // vertical room the viz panel has on mobile — the active viz's
+    // ResizeObserver (see columnHistoryViz/followCardViz) picks up the
+    // resulting resize and refits itself, no explicit re-render needed here.
+    vizPanel.classList.toggle("hide-viz-chrome", mode === "lesson");
     if (mode === "lesson") {
       void lesson.start();
     } else {

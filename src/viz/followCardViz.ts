@@ -1,5 +1,5 @@
 import type { OperationKind } from "../core/operations";
-import { CELL_WIDTH, HEADER_HEIGHT, buildStepIconRow, createGridCanvas } from "./grid";
+import { CELL_WIDTH, HEADER_HEIGHT, buildStepIconRow, createGridCanvas, fitStageToContainer } from "./grid";
 import type { VizContext, VizRenderOptions, Visualization } from "./types";
 
 const MIN_TRIALS_FOR_SMOOTH_GRADIENT = 20;
@@ -33,6 +33,13 @@ export class FollowCardViz implements Visualization {
   private descEl: HTMLElement | null = null;
   private noteEl: HTMLElement | null = null;
   private scrollEl: HTMLElement | null = null;
+  /** See ColumnHistoryViz's resizeObserver for why this watches the container's box size rather than `window`. */
+  private resizeObserver: ResizeObserver | null = null;
+  private readonly handleResize = (): void => {
+    if (!this.scrollEl) return;
+    const stage = this.scrollEl.querySelector<HTMLElement>(".deck-grid-stage");
+    if (stage) fitStageToContainer(stage, this.scrollEl);
+  };
 
   mount(container: HTMLElement, ctx: VizContext): void {
     this.container = container;
@@ -47,6 +54,10 @@ export class FollowCardViz implements Visualization {
     this.descEl = container.querySelector<HTMLElement>(".viz-desc");
     this.noteEl = container.querySelector<HTMLElement>(".viz-note");
     this.scrollEl = container.querySelector<HTMLElement>(".follow-card-scroll");
+    this.resizeObserver = new ResizeObserver(this.handleResize);
+    if (this.scrollEl) this.resizeObserver.observe(this.scrollEl);
+    // See ColumnHistoryViz's mount for why this is also needed alongside the ResizeObserver.
+    window.visualViewport?.addEventListener("resize", this.handleResize);
     this.render(ctx);
   }
 
@@ -108,9 +119,13 @@ export class FollowCardViz implements Visualization {
       col === 0 || !firstTrial ? null : (firstTrial.steps[col - 1]?.kind ?? null);
     stage.appendChild(buildStepIconRow(columns, getKind));
     this.scrollEl.appendChild(stage);
+    fitStageToContainer(stage, this.scrollEl);
   }
 
   unmount(): void {
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
+    window.visualViewport?.removeEventListener("resize", this.handleResize);
     if (this.container) this.container.innerHTML = "";
     this.container = null;
     this.descEl = null;

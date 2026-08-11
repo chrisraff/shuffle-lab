@@ -2,7 +2,15 @@ import type { ColorScheme } from "../core/colors";
 import type { Trial } from "../core/experiment";
 import type { CutStep, OperationKind, OverhandStep } from "../core/operations";
 import type { ShuffleStep } from "../core/shuffle";
-import { CELL_WIDTH, HEADER_HEIGHT, buildStepIconRow, computeCellHeight, createGridCanvas, fillCell } from "./grid";
+import {
+  CELL_WIDTH,
+  HEADER_HEIGHT,
+  buildStepIconRow,
+  computeCellHeight,
+  createGridCanvas,
+  fillCell,
+  fitStageToContainer,
+} from "./grid";
 import type { VizContext, VizRenderOptions, Visualization } from "./types";
 
 const SPLIT_DURATION_MS = 450;
@@ -65,6 +73,20 @@ export class ColumnHistoryViz implements Visualization {
 
   private container: HTMLElement | null = null;
   private trialsEl: HTMLElement | null = null;
+  /**
+   * Refits on any box-size change of the scroll wrapper itself, not just
+   * `window` resizes — mobile browser chrome (address bar) showing/hiding
+   * changes the `dvh`-derived layout height without firing a `window`
+   * "resize" event, and this also transitively catches every other thing
+   * that resizes the wrapper (controls panel height, lesson panel
+   * show/hide) without each of those call sites needing to know to refit.
+   */
+  private resizeObserver: ResizeObserver | null = null;
+  private readonly handleResize = (): void => {
+    if (!this.trialsEl) return;
+    const wrap = this.trialsEl.querySelector<HTMLElement>(".deck-grid-wrap");
+    if (wrap) fitStageToContainer(wrap, this.trialsEl);
+  };
 
   mount(container: HTMLElement, ctx: VizContext): void {
     this.container = container;
@@ -76,6 +98,14 @@ export class ColumnHistoryViz implements Visualization {
       <div class="column-history-trials"></div>
     `;
     this.trialsEl = container.querySelector<HTMLElement>(".column-history-trials");
+    this.resizeObserver = new ResizeObserver(this.handleResize);
+    if (this.trialsEl) this.resizeObserver.observe(this.trialsEl);
+    // Belt-and-suspenders alongside the ResizeObserver above: mobile browser
+    // chrome (address bar, keyboard) showing/hiding fires this even in
+    // cases where it doesn't (promptly) change any observed element's
+    // layout box — e.g. a `dvh` recompute that lags behind the visible
+    // viewport actually changing.
+    window.visualViewport?.addEventListener("resize", this.handleResize);
     this.render(ctx);
   }
 
@@ -97,6 +127,7 @@ export class ColumnHistoryViz implements Visualization {
     this.trialsEl.innerHTML = "";
     const { wrap } = buildTrialGrid(experiment.trials[0], experiment.deckSize, colorScheme);
     this.trialsEl.appendChild(wrap);
+    fitStageToContainer(wrap, this.trialsEl);
   }
 
   private animateLatestOperation(ctx: VizContext): Promise<void> {
@@ -250,6 +281,9 @@ export class ColumnHistoryViz implements Visualization {
   }
 
   unmount(): void {
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
+    window.visualViewport?.removeEventListener("resize", this.handleResize);
     if (this.container) this.container.innerHTML = "";
     this.container = null;
     this.trialsEl = null;
@@ -327,6 +361,7 @@ function buildAnimationStage(
     trial.history.length + extraColumns, // widthColumns
   );
   trialsEl.appendChild(wrap);
+  fitStageToContainer(wrap, trialsEl);
 
   const overlay = document.createElement("div");
   overlay.className = "anim-overlay";
