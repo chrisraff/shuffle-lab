@@ -78,3 +78,52 @@ export const COLOR_SCHEMES: ColorScheme[] = [
 export function getColorScheme(id: string): ColorScheme {
   return COLOR_SCHEMES.find((s) => s.id === id) ?? COLOR_SCHEMES[0];
 }
+
+function rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  if (max === min) return { h: 0, s: 0, l };
+  const d = max - min;
+  const s = d / (1 - Math.abs(2 * l - 1));
+  let h: number;
+  if (max === r) h = ((g - b) / d) % 6;
+  else if (max === g) h = (b - r) / d + 2;
+  else h = (r - g) / d + 4;
+  h *= 60;
+  if (h < 0) h += 360;
+  return { h, s, l };
+}
+
+function parseToHsl(color: string): { h: number; s: number; l: number } {
+  const rgbMatch = color.match(/^rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/);
+  if (rgbMatch) {
+    const [r, g, b] = rgbMatch.slice(1, 4).map((v) => Number(v) / 255);
+    return rgbToHsl(r, g, b);
+  }
+  const hslMatch = color.match(/^hsl\(\s*([\d.]+)\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%\s*\)$/);
+  if (hslMatch) {
+    return { h: Number(hslMatch[1]), s: Number(hslMatch[2]) / 100, l: Number(hslMatch[3]) / 100 };
+  }
+  throw new Error(`Unsupported color format: ${color}`);
+}
+
+const TRIAL_MIN_LIGHTNESS = 0.3;
+const TRIAL_MAX_LIGHTNESS = 0.7;
+
+/**
+ * Normalizes a colorFor() output for the follow-card ("trial") viz: full
+ * saturation, and lightness linearly remapped from [0, 1] to
+ * [TRIAL_MIN_LIGHTNESS, TRIAL_MAX_LIGHTNESS]. Some scheme endpoints are too
+ * dark to read against the viz's near-black background (e.g. Sunset's
+ * start) while others are too light to read as "solid" color (e.g.
+ * Viridis's end); clamping every color to a mid-brightness band fixes both.
+ * Grayscale colors (s === 0) keep their hue-less saturation so the scheme
+ * stays achromatic, but still get the lightness remap.
+ */
+export function toFullSaturation(color: string): string {
+  const { h, s, l } = parseToHsl(color);
+  const mappedL = TRIAL_MIN_LIGHTNESS + l * (TRIAL_MAX_LIGHTNESS - TRIAL_MIN_LIGHTNESS);
+  const finalS = s === 0 ? 0 : 100;
+  return `hsl(${h}, ${finalS}%, ${mappedL * 100}%)`;
+}

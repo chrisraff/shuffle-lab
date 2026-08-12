@@ -1,3 +1,4 @@
+import { toFullSaturation } from "../core/colors";
 import type { OperationKind } from "../core/operations";
 import { CELL_WIDTH, HEADER_HEIGHT, buildStepIconRow, createGridCanvas, fitStageToContainer } from "./grid";
 import type { VizContext, VizRenderOptions, Visualization } from "./types";
@@ -91,7 +92,7 @@ export class FollowCardViz implements Visualization {
     const stage = document.createElement("div");
     stage.className = "deck-grid-stage";
     const { canvas, gfx, cellHeight } = createGridCanvas(columns, deckSize);
-    const trackedColor = colorScheme.colorFor(trackedCard, deckSize);
+    const trackedColor = toFullSaturation(colorScheme.colorFor(trackedCard, deckSize));
     const cellGap = cellHeight > 3 ? 1 : 0;
 
     for (let c = 0; c < columns; c++) {
