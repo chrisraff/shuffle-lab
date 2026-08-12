@@ -1,5 +1,37 @@
+/* Light/dark is automatic: :root holds the light palette (the default),
+   overridden for dark either by the OS-level prefers-color-scheme, or by an
+   explicit data-theme attribute the embed page sets from its ?theme= param
+   to pin a theme regardless of OS setting (see src/core/theme.ts and
+   src/embed/main.ts). The plain index.html page never sets data-theme, so
+   it always just follows the OS. */
 :root {
   color-scheme: light dark;
+  --bg: #f3f5f8;
+  --panel: #ffffff;
+  --panel-border: #d8dde5;
+  --text: #1a1d24;
+  --text-dim: #5b6270;
+  --accent: #0e7490;
+  --accent-dim: #cffafe;
+  --danger: #dc2626;
+  --radius: 10px;
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --panel-border: #2a2f3a;
+    --text: #e8eaed;
+    --text-dim: #9aa1ac;
+    --accent: #6ee7ff;
+    --accent-dim: #2a5a66;
+    --danger: #ff6e6e;
+  }
+}
+
+:root[data-theme="dark"] {
   --bg: #0f1115;
   --panel: #171a21;
   --panel-border: #2a2f3a;
@@ -8,8 +40,6 @@
   --accent: #6ee7ff;
   --accent-dim: #2a5a66;
   --danger: #ff6e6e;
-  --radius: 10px;
-  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 * {

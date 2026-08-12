@@ -1,10 +1,10 @@
 import { toFullSaturation } from "../core/colors";
 import type { OperationKind } from "../core/operations";
+import { getEffectiveTheme } from "../core/theme";
 import { CELL_WIDTH, HEADER_HEIGHT, buildStepIconRow, createGridCanvas, fitStageToContainer } from "./grid";
 import type { VizContext, VizRenderOptions, Visualization } from "./types";
 
 const MIN_TRIALS_FOR_SMOOTH_GRADIENT = 20;
-const BACKGROUND_COLOR = "#0f1115";
 /**
  * Raw probability makes faint cells nearly invisible on a dark background
  * (e.g. 1/52 ≈ 2% opacity) even though the difference from "impossible" is
@@ -19,16 +19,16 @@ const VISIBILITY_GAMMA = 0.45;
  * instead of drawing one trial's actual arrangement, each cell shows the
  * TRACKED card's color averaged across every trial: a cell where the card
  * landed in, say, 100% of trials is drawn in full color, one where it
- * landed in 2% of trials is drawn as a faint wash of that color over black.
- * At 0 shuffles that's a solid color at row 0 and black everywhere else; as
- * shuffles increase the color spreads out and fades, because the tracked
- * card is only ever in one place per trial and "being averaged" with black
- * everywhere it wasn't.
+ * landed in 2% of trials is drawn as a faint wash of that color over the
+ * background. At 0 shuffles that's a solid color at row 0 and background
+ * everywhere else; as shuffles increase the color spreads out and fades,
+ * because the tracked card is only ever in one place per trial and "being
+ * averaged" with the background everywhere it wasn't.
  */
 export class FollowCardViz implements Visualization {
   id = "follow-card";
   label = "Follow One Card";
-  description = "Tracks one card across every trial and averages its color — solid where it reliably ends up, fading towards black where it rarely does.";
+  description = "Tracks one card across every trial and averages its color — solid where it reliably ends up, fading towards the background where it rarely does.";
 
   private container: HTMLElement | null = null;
   private descEl: HTMLElement | null = null;
@@ -72,8 +72,8 @@ export class FollowCardViz implements Visualization {
 
     this.descEl.textContent =
       trackedCard === 0
-        ? "Tracks the card that started on top of the deck across every trial and averages its color — solid where it reliably ends up, fading towards black where it rarely does."
-        : `Tracks the card that started at position ${trackedCard} across every trial and averages its color — solid where it reliably ends up, fading towards black where it rarely does.`;
+        ? "Tracks the card that started on top of the deck across every trial and averages its color — solid where it reliably ends up, fading towards the background where it rarely does."
+        : `Tracks the card that started at position ${trackedCard} across every trial and averages its color — solid where it reliably ends up, fading towards the background where it rarely does.`;
 
     this.noteEl.textContent =
       numTrials < MIN_TRIALS_FOR_SMOOTH_GRADIENT
@@ -92,7 +92,8 @@ export class FollowCardViz implements Visualization {
     const stage = document.createElement("div");
     stage.className = "deck-grid-stage";
     const { canvas, gfx, cellHeight } = createGridCanvas(columns, deckSize);
-    const trackedColor = toFullSaturation(colorScheme.colorFor(trackedCard, deckSize));
+    const trackedColor = toFullSaturation(colorScheme.colorFor(trackedCard, deckSize), getEffectiveTheme());
+    const backgroundColor = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim();
     const cellGap = cellHeight > 3 ? 1 : 0;
 
     for (let c = 0; c < columns; c++) {
@@ -103,7 +104,7 @@ export class FollowCardViz implements Visualization {
         const w = CELL_WIDTH - 1;
         const h = cellHeight - cellGap;
 
-        gfx.fillStyle = BACKGROUND_COLOR;
+        gfx.fillStyle = backgroundColor;
         gfx.fillRect(x, y, w, h);
         if (probability > 0) {
           gfx.globalAlpha = probability ** VISIBILITY_GAMMA;

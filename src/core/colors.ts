@@ -1,3 +1,5 @@
+import type { Theme } from "./theme";
+
 /**
  * A color scheme maps a card's ORIGINAL position (before any shuffling) to a
  * color. Because color always follows the card's original index, watching
@@ -108,22 +110,32 @@ function parseToHsl(color: string): { h: number; s: number; l: number } {
   throw new Error(`Unsupported color format: ${color}`);
 }
 
-const TRIAL_MIN_LIGHTNESS = 0.3;
-const TRIAL_MAX_LIGHTNESS = 0.7;
+/**
+ * The follow-card viz blends colors over the page's `--bg`, so the safe
+ * lightness band depends on which theme that is: dark mode's near-black
+ * background wants colors pulled up towards mid-brightness, while light
+ * mode's near-white background wants them pulled down, or a faint (low
+ * alpha) cell would wash out into the background either way.
+ */
+const TRIAL_LIGHTNESS_BAND: Record<Theme, [number, number]> = {
+  dark: [0.3, 0.7],
+  light: [0.22, 0.5],
+};
 
 /**
  * Normalizes a colorFor() output for the follow-card ("trial") viz: full
- * saturation, and lightness linearly remapped from [0, 1] to
- * [TRIAL_MIN_LIGHTNESS, TRIAL_MAX_LIGHTNESS]. Some scheme endpoints are too
- * dark to read against the viz's near-black background (e.g. Sunset's
- * start) while others are too light to read as "solid" color (e.g.
- * Viridis's end); clamping every color to a mid-brightness band fixes both.
- * Grayscale colors (s === 0) keep their hue-less saturation so the scheme
- * stays achromatic, but still get the lightness remap.
+ * saturation, and lightness linearly remapped from [0, 1] to the current
+ * theme's TRIAL_LIGHTNESS_BAND. Some scheme endpoints are too dark to read
+ * against a dark background (e.g. Sunset's start) while others are too
+ * light to read as "solid" color (e.g. Viridis's end); clamping every color
+ * to a mid-brightness band fixes both, in either theme. Grayscale colors
+ * (s === 0) keep their hue-less saturation so the scheme stays achromatic,
+ * but still get the lightness remap.
  */
-export function toFullSaturation(color: string): string {
+export function toFullSaturation(color: string, theme: Theme): string {
   const { h, s, l } = parseToHsl(color);
-  const mappedL = TRIAL_MIN_LIGHTNESS + l * (TRIAL_MAX_LIGHTNESS - TRIAL_MIN_LIGHTNESS);
+  const [minLightness, maxLightness] = TRIAL_LIGHTNESS_BAND[theme];
+  const mappedL = minLightness + l * (maxLightness - minLightness);
   const finalS = s === 0 ? 0 : 100;
   return `hsl(${h}, ${finalS}%, ${mappedL * 100}%)`;
 }

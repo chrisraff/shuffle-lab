@@ -1,6 +1,7 @@
 import { getColorScheme } from "../core/colors";
 import { Experiment } from "../core/experiment";
 import type { OperationKind } from "../core/operations";
+import { watchSystemTheme } from "../core/theme";
 import { createVisualization } from "../viz/registry";
 import type { VizContext, Visualization } from "../viz/types";
 import { ControlsPanel } from "./controls";
@@ -113,6 +114,11 @@ export function mountApp(root: HTMLElement): void {
 
   let activeViz: Visualization = createVisualization(DEFAULT_VIZ);
   activeViz.mount(vizPanel, ctx());
+  // The viz canvases bake theme colors into pixels at draw time (see
+  // grid.ts/followCardViz.ts), so a live OS-level light/dark flip needs an
+  // explicit redraw to actually repaint them — everything else re-themes
+  // for free via CSS custom properties.
+  watchSystemTheme(() => activeViz.render(ctx()));
 
   function stopPlay(): void {
     if (playTimer === null) return;

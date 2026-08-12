@@ -6,6 +6,7 @@ const DEFAULT_NUM_TRIALS = 2000;
 const DEFAULT_SHUFFLE_COUNT = 4;
 const DEFAULT_SWEEP_INTERVAL_MS = 100;
 const DEFAULT_SHOW_TEXT = false;
+const DEFAULT_THEME = "auto";
 
 export interface RiffleLoopConfig {
   deckSize: number;
@@ -62,6 +63,17 @@ export function parseFollowCardLoopConfig(search: URLSearchParams): FollowCardLo
     sweepIntervalMs: parseIntParam(search, "sweepIntervalMs", DEFAULT_SWEEP_INTERVAL_MS, 16, 2000),
     showText: parseBoolParam(search, "showText", DEFAULT_SHOW_TEXT),
   };
+}
+
+/**
+ * "light"/"dark" pin the embed to that theme regardless of the visitor's OS
+ * setting (letting the embedding page keep it in sync with its own theme
+ * state); "auto" (the default, and any other value) follows
+ * prefers-color-scheme like the main app does.
+ */
+export function parseThemeParam(search: URLSearchParams): "light" | "dark" | "auto" {
+  const raw = search.get("theme") ?? DEFAULT_THEME;
+  return raw === "light" || raw === "dark" ? raw : "auto";
 }
 
 export function sleep(ms: number): Promise<void> {

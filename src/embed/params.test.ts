@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseFollowCardLoopConfig, parseRiffleLoopConfig } from "./params";
+import { parseFollowCardLoopConfig, parseRiffleLoopConfig, parseThemeParam } from "./params";
 
 describe("parseRiffleLoopConfig", () => {
   it("falls back to defaults when no params are given", () => {
@@ -93,5 +93,20 @@ describe("parseFollowCardLoopConfig", () => {
     const cfg = parseFollowCardLoopConfig(new URLSearchParams("numTrials=nope&shuffleCount=??"));
     expect(cfg.numTrials).toBe(2000);
     expect(cfg.shuffleCount).toBe(4);
+  });
+});
+
+describe("parseThemeParam", () => {
+  it("defaults to auto when no param is given", () => {
+    expect(parseThemeParam(new URLSearchParams(""))).toBe("auto");
+  });
+
+  it("reads light and dark", () => {
+    expect(parseThemeParam(new URLSearchParams("theme=light"))).toBe("light");
+    expect(parseThemeParam(new URLSearchParams("theme=dark"))).toBe("dark");
+  });
+
+  it("falls back to auto on garbage input", () => {
+    expect(parseThemeParam(new URLSearchParams("theme=nonsense"))).toBe("auto");
   });
 });

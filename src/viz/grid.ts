@@ -40,9 +40,10 @@ export function createGridCanvas(
 
   const gfx = canvas.getContext("2d")!;
   gfx.scale(dpr, dpr);
-  gfx.fillStyle = "#0f1115";
+  const rootStyle = getComputedStyle(document.documentElement);
+  gfx.fillStyle = rootStyle.getPropertyValue("--bg").trim();
   gfx.fillRect(0, 0, widthCss, heightCss);
-  gfx.fillStyle = "#9aa1ac";
+  gfx.fillStyle = rootStyle.getPropertyValue("--text-dim").trim();
   gfx.font = "10px system-ui, sans-serif";
   gfx.textAlign = "center";
   for (let c = 0; c < labelColumns; c++) {
